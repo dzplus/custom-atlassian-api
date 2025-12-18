@@ -12,6 +12,7 @@ from atlassian.confluence.resources import (
     SpaceResource,
     UserResource,
     SearchResource,
+    NotificationResource,
 )
 
 
@@ -93,6 +94,7 @@ class ConfluenceClient(BaseHttpClient):
         self._space: Optional[SpaceResource] = None
         self._user: Optional[UserResource] = None
         self._search: Optional[SearchResource] = None
+        self._notification: Optional[NotificationResource] = None
 
     @property
     def content(self) -> ContentResource:
@@ -121,6 +123,13 @@ class ConfluenceClient(BaseHttpClient):
         if self._search is None:
             self._search = SearchResource(self)
         return self._search
+
+    @property
+    def notification(self) -> NotificationResource:
+        """通知资源 (rest/notification) - 需要 MyWork Plugin"""
+        if self._notification is None:
+            self._notification = NotificationResource(self)
+        return self._notification
 
     # ========== 便捷方法 ==========
 
