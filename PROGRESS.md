@@ -2,6 +2,9 @@
 
 ## 项目概述
 统一的 Atlassian 产品 API 客户端，支持 Jira、Confluence、Tempo 等产品
+文档：
+https://docs.atlassian.com/mywork-confluence-host-plugin/REST/1.1-build22/
+https://docs.atlassian.com/atlassian-confluence/REST/6.6.0/
 
 ## 技术栈
 - Python 3.12+
