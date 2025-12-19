@@ -904,3 +904,179 @@ class ContentResource(BaseResource):
             params["expand"] = expand
 
         return await self.client.get_json(path, params=params)
+
+    # ========== History ==========
+
+    async def get_history(
+        self,
+        content_id: str,
+        expand: Optional[str] = None,
+    ) -> dict:
+        """
+        获取内容历史记录
+
+        GET /rest/api/content/{id}/history
+
+        Args:
+            content_id: 内容 ID
+            expand: 展开的字段 (previousVersion, nextVersion, lastUpdated, contributors)
+
+        Returns:
+            dict: 历史记录
+            {
+                "latest": true,
+                "createdBy": {...},
+                "createdDate": "...",
+                "lastUpdated": {...},
+                "previousVersion": {...},
+                "nextVersion": {...},
+                "contributors": {...},
+                "_links": {...}
+            }
+        """
+        path = f"{self.BASE_PATH}/{content_id}/history"
+        params: dict[str, Any] = {}
+        if expand:
+            params["expand"] = expand
+
+        return await self.client.get_json(path, params=params)
+
+    # ========== Attachment Update ==========
+
+    async def update_attachment(
+        self,
+        content_id: str,
+        attachment_id: str,
+        attachment_data: dict,
+    ) -> dict:
+        """
+        更新附件元数据
+
+        PUT /rest/api/content/{id}/child/attachment/{attachmentId}
+
+        Args:
+            content_id: 内容 ID
+            attachment_id: 附件 ID
+            attachment_data: 附件数据 (title, version 等)
+
+        Returns:
+            dict: 更新后的附件信息
+        """
+        path = f"{self.BASE_PATH}/{content_id}/child/attachment/{attachment_id}"
+        return await self.client.put_json(path, data=attachment_data)
+
+    async def update_attachment_data(
+        self,
+        content_id: str,
+        attachment_id: str,
+        file_path: str,
+        comment: Optional[str] = None,
+        minor_edit: bool = False,
+    ) -> dict:
+        """
+        更新附件二进制数据
+
+        POST /rest/api/content/{id}/child/attachment/{attachmentId}/data
+
+        Args:
+            content_id: 内容 ID
+            attachment_id: 附件 ID
+            file_path: 文件路径
+            comment: 更新注释
+            minor_edit: 是否为小修改
+
+        Returns:
+            dict: 更新后的附件信息
+        """
+        from pathlib import Path
+
+        path = f"{self.BASE_PATH}/{content_id}/child/attachment/{attachment_id}/data"
+
+        file_path_obj = Path(file_path)
+        filename = file_path_obj.name
+
+        with open(file_path, "rb") as f:
+            files = {"file": (filename, f, "application/octet-stream")}
+            data = {"minorEdit": str(minor_edit).lower()}
+            if comment:
+                data["comment"] = comment
+
+            response = await self.client.post(path, data=data, files=files)
+            response.raise_for_status()
+            return response.json()
+
+    # ========== ContentBody Convert ==========
+
+    async def convert_contentbody(
+        self,
+        value: str,
+        representation_from: str,
+        representation_to: str,
+    ) -> dict:
+        """
+        转换内容格式
+
+        POST /rest/api/contentbody/convert/{to}
+
+        Args:
+            value: 要转换的内容
+            representation_from: 源格式 (storage, editor, view, export_view, wiki)
+            representation_to: 目标格式 (storage, editor, view, export_view)
+
+        Returns:
+            dict: 转换后的内容
+            {
+                "value": "<p>Converted content</p>",
+                "representation": "storage"
+            }
+        """
+        path = f"/rest/api/contentbody/convert/{representation_to}"
+        payload = {
+            "value": value,
+            "representation": representation_from,
+        }
+        return await self.client.post_json(path, data=payload)
+
+    # ========== Blueprint ==========
+
+    async def publish_legacy_draft(
+        self,
+        draft_id: str,
+        status: str = "current",
+    ) -> dict:
+        """
+        发布遗留草稿
+
+        POST /rest/api/content/blueprint/instance/{draftId}
+
+        Args:
+            draft_id: 草稿 ID
+            status: 发布状态 (默认 "current")
+
+        Returns:
+            dict: 发布后的内容
+        """
+        path = f"/rest/api/content/blueprint/instance/{draft_id}"
+        payload = {"status": status}
+        return await self.client.post_json(path, data=payload)
+
+    async def publish_shared_draft(
+        self,
+        draft_id: str,
+        status: str = "current",
+    ) -> dict:
+        """
+        发布共享草稿
+
+        PUT /rest/api/content/blueprint/instance/{draftId}
+
+        Args:
+            draft_id: 草稿 ID
+            status: 发布状态 (默认 "current")
+
+        Returns:
+            dict: 发布后的内容
+        """
+        path = f"/rest/api/content/blueprint/instance/{draft_id}"
+        payload = {"status": status}
+        return await self.client.put_json(path, data=payload)

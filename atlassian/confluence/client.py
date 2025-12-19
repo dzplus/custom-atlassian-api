@@ -13,6 +13,9 @@ from atlassian.confluence.resources import (
     UserResource,
     SearchResource,
     NotificationResource,
+    GroupResource,
+    AuditResource,
+    LongTaskResource,
 )
 
 
@@ -95,6 +98,9 @@ class ConfluenceClient(BaseHttpClient):
         self._user: Optional[UserResource] = None
         self._search: Optional[SearchResource] = None
         self._notification: Optional[NotificationResource] = None
+        self._group: Optional[GroupResource] = None
+        self._audit: Optional[AuditResource] = None
+        self._longtask: Optional[LongTaskResource] = None
 
     @property
     def content(self) -> ContentResource:
@@ -130,6 +136,27 @@ class ConfluenceClient(BaseHttpClient):
         if self._notification is None:
             self._notification = NotificationResource(self)
         return self._notification
+
+    @property
+    def group(self) -> GroupResource:
+        """用户组资源 (rest/api/group)"""
+        if self._group is None:
+            self._group = GroupResource(self)
+        return self._group
+
+    @property
+    def audit(self) -> AuditResource:
+        """审计资源 (rest/audit) - 需要管理员权限"""
+        if self._audit is None:
+            self._audit = AuditResource(self)
+        return self._audit
+
+    @property
+    def longtask(self) -> LongTaskResource:
+        """长期任务资源 (rest/api/longtask)"""
+        if self._longtask is None:
+            self._longtask = LongTaskResource(self)
+        return self._longtask
 
     # ========== 便捷方法 ==========
 

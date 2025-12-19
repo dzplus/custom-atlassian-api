@@ -12,6 +12,8 @@ DELETE /rest/api/user/watch/content/{contentId}       - 取消监视内容
 GET    /rest/api/user/watch/space/{spaceKey}          - 检查是否监视空间
 POST   /rest/api/user/watch/space/{spaceKey}          - 监视空间
 DELETE /rest/api/user/watch/space/{spaceKey}          - 取消监视空间
+
+GET    /rest/api/user/memberof                        - 获取用户所属组
 """
 
 from typing import Optional
@@ -309,3 +311,50 @@ class UserResource(BaseResource):
 
         response = await self.client.delete(path, params=params)
         response.raise_for_status()
+
+    # ========== Group Membership ==========
+
+    async def get_member_of(
+        self,
+        username: Optional[str] = None,
+        key: Optional[str] = None,
+        start: int = 0,
+        limit: int = 200,
+    ) -> dict:
+        """
+        获取用户所属的用户组
+
+        GET /rest/api/user/memberof
+
+        Args:
+            username: 用户名（可选，默认当前用户）
+            key: 用户 key（可选）
+            start: 起始位置
+            limit: 返回数量（最大200）
+
+        Returns:
+            dict: 用户组列表
+            {
+                "results": [
+                    {
+                        "type": "group",
+                        "name": "confluence-users",
+                        "_links": {...}
+                    }
+                ],
+                "start": 0,
+                "limit": 200,
+                "size": 1
+            }
+        """
+        path = f"{self.BASE_PATH}/memberof"
+        params = {
+            "start": start,
+            "limit": limit,
+        }
+        if username:
+            params["username"] = username
+        if key:
+            params["key"] = key
+
+        return await self.client.get_json(path, params=params)
