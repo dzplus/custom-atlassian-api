@@ -1004,8 +1004,8 @@ python check_admin_permissions.py
 输出示例：
 
 ```
-✓ 用户名: duanzhang
-✓ 显示名: 断章
+✓ 用户名: dzplus
+✓ 显示名: 老段
 ✓ 用户类型: known
 ✓ 用户所属组 (4 个):
   - confluence-users
