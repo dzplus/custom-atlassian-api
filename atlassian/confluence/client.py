@@ -16,6 +16,8 @@ from atlassian.confluence.resources import (
     GroupResource,
     AuditResource,
     LongTaskResource,
+    WebhookResource,
+    AccessModeResource,
 )
 
 
@@ -101,6 +103,8 @@ class ConfluenceClient(BaseHttpClient):
         self._group: Optional[GroupResource] = None
         self._audit: Optional[AuditResource] = None
         self._longtask: Optional[LongTaskResource] = None
+        self._webhook: Optional[WebhookResource] = None
+        self._accessmode: Optional[AccessModeResource] = None
 
     @property
     def content(self) -> ContentResource:
@@ -157,6 +161,20 @@ class ConfluenceClient(BaseHttpClient):
         if self._longtask is None:
             self._longtask = LongTaskResource(self)
         return self._longtask
+
+    @property
+    def webhook(self) -> WebhookResource:
+        """Webhook 资源 (rest/api/webhooks) - 需要 Confluence 7.0+"""
+        if self._webhook is None:
+            self._webhook = WebhookResource(self)
+        return self._webhook
+
+    @property
+    def accessmode(self) -> AccessModeResource:
+        """访问模式资源 (rest/api/accessmode) - 需要 Confluence 7.0+"""
+        if self._accessmode is None:
+            self._accessmode = AccessModeResource(self)
+        return self._accessmode
 
     # ========== 便捷方法 ==========
 

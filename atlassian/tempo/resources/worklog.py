@@ -69,6 +69,11 @@ class WorklogResource(BaseResource):
             self.BASE_PATH,
             data=worklog.to_api_dict(),
         )
+
+        # Tempo API 返回的是数组，取第一个元素
+        if isinstance(data, list) and len(data) > 0:
+            return Worklog.model_validate(data[0])
+
         return Worklog.model_validate(data)
 
     async def get(self, worklog_id: int) -> Worklog:

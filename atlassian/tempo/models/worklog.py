@@ -13,11 +13,21 @@ class WorklogAttributes(BaseModel):
     value: Optional[Any] = None
 
 
+class WorklogIssue(BaseModel):
+    """工时记录关联的 Issue 信息"""
+    key: str
+    id: int
+    summary: Optional[str] = None
+
+    class Config:
+        extra = "allow"  # 允许额外字段
+
+
 class Worklog(BaseModel):
     """工时记录"""
     id: int = Field(alias="tempoWorklogId")
     jira_worklog_id: Optional[int] = Field(None, alias="jiraWorklogId")
-    issue_key: str = Field(alias="issue")
+    issue: WorklogIssue  # Issue 对象
     time_spent_seconds: int = Field(alias="timeSpentSeconds")
     billable_seconds: Optional[int] = Field(None, alias="billableSeconds")
     started: str  # ISO date string "2024-01-15"
@@ -27,14 +37,20 @@ class Worklog(BaseModel):
     author: Optional[str] = None
 
     # 关联信息
-    origin_task_id: Optional[str] = Field(None, alias="originTaskId")
+    origin_task_id: Optional[int] = Field(None, alias="originTaskId")  # 实际是 int
     origin_id: Optional[int] = Field(None, alias="originId")
 
     # 属性
     attributes: Optional[dict] = Field(default_factory=dict)
 
+    @property
+    def issue_key(self) -> str:
+        """获取 Issue Key（兼容性属性）"""
+        return self.issue.key if isinstance(self.issue, WorklogIssue) else str(self.issue)
+
     class Config:
         populate_by_name = True
+        extra = "allow"  # 允许额外字段
 
 
 class WorklogCreate(BaseModel):

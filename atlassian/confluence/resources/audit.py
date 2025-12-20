@@ -1,12 +1,18 @@
 """
 Audit Resource - 审计 API
 
-GET    /rest/audit                  - 获取审计记录列表
-POST   /rest/audit                  - 存储审计记录
-GET    /rest/audit/export           - 导出审计数据
-GET    /rest/audit/retention        - 获取保留期设置
-PUT    /rest/audit/retention        - 设置保留期
-GET    /rest/audit/since            - 获取指定时间范围内的审计记录
+GET    /rest/api/audit              - 获取审计记录列表
+POST   /rest/api/audit              - 存储审计记录
+GET    /rest/api/audit/export       - 导出审计数据
+GET    /rest/api/audit/retention    - 获取保留期设置
+PUT    /rest/api/audit/retention    - 设置保留期
+GET    /rest/api/audit/since        - 获取指定时间范围内的审计记录
+
+版本兼容性:
+- Confluence 7.0+: /rest/api/audit
+- Confluence 6.x: /rest/audit (旧路径)
+
+默认使用 7.0+ 路径。如果遇到 404 错误，可能是使用了旧版本 Confluence。
 """
 
 from typing import Any, Optional
@@ -17,12 +23,13 @@ class AuditResource(BaseResource):
     """
     审计资源
 
-    API: /rest/audit
+    API: /rest/api/audit (Confluence 7.0+)
+    旧路径: /rest/audit (Confluence 6.x)
 
     注意: 需要管理员权限
     """
 
-    BASE_PATH = "/rest/audit"
+    BASE_PATH = "/rest/api/audit"
 
     async def get_all(
         self,

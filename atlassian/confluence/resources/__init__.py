@@ -10,6 +10,8 @@ from atlassian.confluence.resources.notification import NotificationResource
 from atlassian.confluence.resources.group import GroupResource
 from atlassian.confluence.resources.audit import AuditResource
 from atlassian.confluence.resources.longtask import LongTaskResource
+from atlassian.confluence.resources.webhook import WebhookResource
+from atlassian.confluence.resources.accessmode import AccessModeResource
 
 __all__ = [
     "ContentResource",
@@ -20,4 +22,6 @@ __all__ = [
     "GroupResource",
     "AuditResource",
     "LongTaskResource",
+    "WebhookResource",
+    "AccessModeResource",
 ]

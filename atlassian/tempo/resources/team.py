@@ -97,6 +97,52 @@ class TeamResource(BaseResource):
         data = await self._client.post_json(self.BASE_PATH, data=team_data)
         return Team.model_validate(data)
 
+    async def update(
+        self,
+        team_id: int,
+        name: Optional[str] = None,
+        summary: Optional[str] = None,
+        lead_username: Optional[str] = None,
+    ) -> Team:
+        """
+        更新团队
+
+        Args:
+            team_id: 团队 ID
+            name: 团队名称
+            summary: 团队描述
+            lead_username: 负责人用户名
+
+        Returns:
+            Team: 更新后的团队
+        """
+        update_data = {}
+        if name is not None:
+            update_data["name"] = name
+        if summary is not None:
+            update_data["summary"] = summary
+        if lead_username is not None:
+            update_data["leadUsername"] = lead_username
+
+        data = await self._client.put_json(
+            f"{self.BASE_PATH}/{team_id}",
+            data=update_data,
+        )
+        return Team.model_validate(data)
+
+    async def delete(self, team_id: int) -> bool:
+        """
+        删除团队
+
+        Args:
+            team_id: 团队 ID
+
+        Returns:
+            bool: 是否成功
+        """
+        await self._client.delete_json(f"{self.BASE_PATH}/{team_id}")
+        return True
+
     async def get_members(
         self,
         team_id: int,
@@ -207,3 +253,23 @@ class TeamResource(BaseResource):
             data=update_data,
         )
         return TeamMember.model_validate(data)
+
+    async def remove_member(
+        self,
+        team_id: int,
+        member_id: int,
+    ) -> bool:
+        """
+        移除团队成员
+
+        Args:
+            team_id: 团队 ID
+            member_id: 成员 ID
+
+        Returns:
+            bool: 是否成功
+        """
+        await self._client.delete_json(
+            f"{self.BASE_PATH}/{team_id}/member/{member_id}"
+        )
+        return True

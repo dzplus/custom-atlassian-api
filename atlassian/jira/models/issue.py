@@ -174,3 +174,118 @@ class UpdateIssueRequest(BaseModel):
     update: Optional[dict] = None
 
     model_config = {"populate_by_name": True}
+
+
+class Worklog(BaseModel):
+    """工作日志"""
+    id: Optional[str] = None
+    self_url: Optional[str] = Field(None, alias="self")
+    author: Optional[User] = None
+    update_author: Optional[User] = Field(None, alias="updateAuthor")
+    comment: Optional[str] = None
+    created: Optional[str] = None
+    updated: Optional[str] = None
+    started: Optional[str] = None
+    time_spent: Optional[str] = Field(None, alias="timeSpent")
+    time_spent_seconds: Optional[int] = Field(None, alias="timeSpentSeconds")
+    visibility: Optional[dict] = None
+
+    model_config = {"populate_by_name": True}
+
+
+class WorklogList(BaseModel):
+    """工作日志列表"""
+    start_at: Optional[int] = Field(None, alias="startAt")
+    max_results: Optional[int] = Field(None, alias="maxResults")
+    total: Optional[int] = None
+    worklogs: Optional[list[Worklog]] = None
+
+    model_config = {"populate_by_name": True}
+
+
+class Watchers(BaseModel):
+    """监视者"""
+    self_url: Optional[str] = Field(None, alias="self")
+    is_watching: Optional[bool] = Field(None, alias="isWatching")
+    watch_count: Optional[int] = Field(None, alias="watchCount")
+    watchers: Optional[list[User]] = None
+
+    model_config = {"populate_by_name": True}
+
+
+class Votes(BaseModel):
+    """投票"""
+    self_url: Optional[str] = Field(None, alias="self")
+    votes: Optional[int] = None
+    has_voted: Optional[bool] = Field(None, alias="hasVoted")
+    voters: Optional[list[User]] = None
+
+    model_config = {"populate_by_name": True}
+
+
+class RemoteObject(BaseModel):
+    """远程对象"""
+    url: Optional[str] = None
+    title: Optional[str] = None
+    summary: Optional[str] = None
+    icon: Optional[dict] = None
+    status: Optional[dict] = None
+
+    model_config = {"populate_by_name": True}
+
+
+class RemoteLink(BaseModel):
+    """远程链接"""
+    id: Optional[int] = None
+    self_url: Optional[str] = Field(None, alias="self")
+    global_id: Optional[str] = Field(None, alias="globalId")
+    application: Optional[dict] = None
+    relationship: Optional[str] = None
+    object: Optional[RemoteObject] = None
+
+    model_config = {"populate_by_name": True}
+
+
+class EditMeta(BaseModel):
+    """编辑Issue元数据"""
+    fields: Optional[dict] = None
+
+    model_config = {"populate_by_name": True}
+
+
+class CreateMeta(BaseModel):
+    """创建Issue元数据"""
+    expand: Optional[str] = None
+    projects: Optional[list[dict]] = None
+
+    model_config = {"populate_by_name": True}
+
+
+class IssuePickerSuggestion(BaseModel):
+    """Issue选择器建议项"""
+    id: Optional[int] = None
+    key: Optional[str] = None
+    key_html: Optional[str] = Field(None, alias="keyHtml")
+    img: Optional[str] = None
+    summary: Optional[str] = None
+    summary_text: Optional[str] = Field(None, alias="summaryText")
+
+    model_config = {"populate_by_name": True}
+
+
+class IssuePickerSection(BaseModel):
+    """Issue选择器分组"""
+    label: Optional[str] = None
+    sub: Optional[str] = None
+    id: Optional[str] = None
+    msg: Optional[str] = None
+    issues: Optional[list[IssuePickerSuggestion]] = None
+
+    model_config = {"populate_by_name": True}
+
+
+class IssuePickerResults(BaseModel):
+    """Issue选择器结果"""
+    sections: Optional[list[IssuePickerSection]] = None
+
+    model_config = {"populate_by_name": True}

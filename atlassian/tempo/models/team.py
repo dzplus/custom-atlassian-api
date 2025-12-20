@@ -2,8 +2,8 @@
 Tempo Team 数据模型
 """
 
-from typing import Optional
-from pydantic import BaseModel, Field
+from typing import Optional, Union
+from pydantic import BaseModel, Field, field_validator
 
 
 class TeamLead(BaseModel):
@@ -20,11 +20,20 @@ class Team(BaseModel):
     id: int
     name: str
     summary: Optional[str] = None
-    lead: Optional[TeamLead] = None
+    lead: Optional[Union[str, TeamLead]] = None  # 可以是字符串或对象
     program: Optional[dict] = None
+
+    @field_validator('lead', mode='before')
+    @classmethod
+    def validate_lead(cls, v):
+        """验证 lead 字段，如果是字符串则转换为 TeamLead 对象"""
+        if isinstance(v, str):
+            return TeamLead(key=v)
+        return v
 
     class Config:
         populate_by_name = True
+        extra = "allow"  # 允许额外字段
 
 
 class TeamMember(BaseModel):

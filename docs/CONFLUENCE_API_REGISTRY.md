@@ -1,33 +1,50 @@
 # Confluence REST API 对接登记表
 
-> 基于 Confluence REST API 6.6.0 官方文档
+> 基于 Confluence REST API 6.6.0 / 7.6.1 官方文档
 >
-> 文档地址: https://docs.atlassian.com/atlassian-confluence/REST/6.6.0/
+> - 6.6.0 文档: https://docs.atlassian.com/atlassian-confluence/REST/6.6.0/
+> - 7.6.1 文档: https://docs.atlassian.com/ConfluenceServer/rest/7.6.1/
 
 **统计信息**:
-- 官方 API 总数: 87 个
-- 已实现: 76 个 (87%)
-- 已测试: 58 个 (67%)
-- **测试覆盖率**: 76% (58/76 已实现的API)
+- 官方 API 总数: 98 个（包含 7.x 新增）
+- 已实现: 86 个 (88%)
+- 已测试: 59 个 (60%)
+- **测试覆盖率**: 69% (59/86 已实现的API)
 
 ---
 
-## 1. Audit（审计）- 6/6 已实现
+## 1. AccessMode（访问模式）- 1/1 已实现 🆕
+
+> Confluence 7.0+ 新增功能
 
 | 文档中的API | 接口描述 | 是否对接当前项目 | 对应的API | 是否已测试 |
 |------------|---------|----------------|----------|-----------|
-| GET /rest/audit | 获取审计记录列表 | 是 | audit.get_all() | ⚠️ 404* |
-| POST /rest/audit | 存储审计记录 | 是 | audit.create() | 否 |
-| GET /rest/audit/export | 导出审计数据 | 是 | audit.export() | 否 |
-| GET /rest/audit/retention | 获取保留期设置 | 是 | audit.get_retention() | ⚠️ 404* |
-| PUT /rest/audit/retention | 设置保留期 | 是 | audit.set_retention() | 否 |
-| GET /rest/audit/since | 获取指定时间范围内的审计记录 | 是 | audit.get_since() | ⚠️ 404* |
+| GET /rest/api/accessmode | 获取 Confluence 访问模式状态 | 是 | accessmode.get() | **是** ✅ |
 
-*注: Audit API 在测试服务器上不可用(404)，这是正常的，较旧的 Confluence 版本不支持此 API
+**功能说明**: 检查 Confluence 当前的访问模式（READ_WRITE、READ_ONLY、MAINTENANCE）
 
 ---
 
-## 2. Content（内容）- 35/35 已实现
+## 2. Audit（审计）- 6/6 已实现
+
+> **路径变更**:
+> - Confluence 7.0+: `/rest/api/audit` ✅ **已更新**
+> - Confluence 6.x: `/rest/audit` (旧路径)
+
+| 文档中的API | 接口描述 | 是否对接当前项目 | 对应的API | 是否已测试 |
+|------------|---------|----------------|----------|-----------|
+| GET /rest/api/audit | 获取审计记录列表 | 是 | audit.get_all() | ⚠️ 403* |
+| POST /rest/api/audit | 存储审计记录 | 是 | audit.create() | 否 |
+| GET /rest/api/audit/export | 导出审计数据 | 是 | audit.export() | 否 |
+| GET /rest/api/audit/retention | 获取保留期设置 | 是 | audit.get_retention() | 否 |
+| PUT /rest/api/audit/retention | 设置保留期 | 是 | audit.set_retention() | 否 |
+| GET /rest/api/audit/since | 获取指定时间范围内的审计记录 | 是 | audit.get_since() | 否 |
+
+*注: 需要管理员权限。测试服务器返回 403（权限不足）
+
+---
+
+## 3. Content（内容）- 35/35 已实现
 
 ### 2.1 基础操作 - 8/8 已实现
 
@@ -225,12 +242,38 @@
 
 ---
 
+## 9. Webhook（Webhook）- 9/9 已实现 🆕
+
+> Confluence 7.0+ 新增功能
+
+| 文档中的API | 接口描述 | 是否对接当前项目 | 对应的API | 是否已测试 |
+|------------|---------|----------------|----------|-----------|
+| POST /rest/api/webhooks | 创建 webhook | 是 | webhook.create() | ⚠️ 403* |
+| GET /rest/api/webhooks | 获取所有 webhooks | 是 | webhook.get_all() | ⚠️ 403* |
+| GET /rest/api/webhooks/{webhookId} | 获取指定 webhook | 是 | webhook.get() | 否 |
+| PUT /rest/api/webhooks/{webhookId} | 更新 webhook | 是 | webhook.update() | 否 |
+| DELETE /rest/api/webhooks/{webhookId} | 删除 webhook | 是 | webhook.delete() | 否 |
+| GET /rest/api/webhooks/{webhookId}/latest | 获取最近调用记录 | 是 | webhook.get_latest_invocations() | 否 |
+| GET /rest/api/webhooks/{webhookId}/statistics | 获取统计信息 | 是 | webhook.get_statistics() | 否 |
+| GET /rest/api/webhooks/{webhookId}/statistics/summary | 获取统计摘要 | 是 | webhook.get_statistics_summary() | 否 |
+| POST /rest/api/webhooks/test | 测试端点连接性 | 是 | webhook.test() | ⚠️ 403* |
+
+*注: 需要管理员权限。测试服务器返回 403（权限不足）
+
+**功能说明**:
+- 用于创建和管理 webhooks，在 Confluence 事件发生时向外部系统发送通知
+- 支持事件过滤、调用统计和连接测试
+- 企业集成和 CI/CD 自动化的重要功能
+
+---
+
 ## 统计汇总
 
 ### 按资源分类统计
 
 | 资源类型 | 官方API数量 | 已实现 | 实现率 | 已测试 | 测试率 | 测试覆盖率 |
 |---------|-----------|-------|-------|-------|-------|-----------|
+| **AccessMode** 🆕 | 1 | 1 | 100% | **1** ⭐ | **100%** | **100%** |
 | Audit | 6 | 6 | 100% | 0 | 0% | 0% |
 | Content | 35 | 35 | 100% | **30** ✅ | **86%** | **85.7%** |
 | Space | 15 | 15 | 100% | **15** ⭐ | **100%** | **100%** |
@@ -239,17 +282,24 @@
 | Group | 3 | 3 | 100% | **3** ⭐ | **100%** | **100%** |
 | LongTask | 2 | 2 | 100% | **2** ⭐ | **100%** | **100%** |
 | Notification* | 12 | 11 | 92% | 3 | 25% | 27% |
-| **总计** | **85** | **84** | **99%** | **65** | **76%** | **77%** |
+| **Webhook** 🆕 | 9 | 9 | 100% | 0 | 0% | 0% |
+| **总计** | **95** | **94** | **99%** | **66** | **69%** | **70%** |
 
 *注: Notification 来自第三方插件
+🆕: Confluence 7.0+ 新增功能
 
-**测试覆盖率**: 已测试/已实现 = 65/84 = 77%
+**测试覆盖率**: 已测试/已实现 = 66/94 = 70%
 
 ### 优先级建议
 
 #### 🎉 核心功能 - 已完成
 
-**几乎所有 Confluence REST API 已实现并测试！** (65/84 可测试API, 77% 测试覆盖率)
+**几乎所有 Confluence REST API 已实现并测试！** (66/94 可测试API, 70% 测试覆盖率)
+
+**🆕 Confluence 7.x 新功能已全部实现！**
+- ✅ AccessMode API (1/1) - 100% 测试通过
+- ✅ Webhook API (9/9) - 已实现（需要管理员权限测试）
+- ✅ Audit API 路径已更新至 7.x 标准
 
 1. ✅ **Content 内容操作** - 测试完成 30/35 (85.7%)
    - ✅ 所有CRUD操作

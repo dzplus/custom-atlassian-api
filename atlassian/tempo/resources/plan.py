@@ -262,39 +262,40 @@ class PlanResource(BaseResource):
     async def create_plan(
         self,
         assignee_key: str,
-        plan_item_id: str,
+        plan_item_id: int,
         start_date: str,
         end_date: str,
         seconds_per_day: int,
-        assignee_type: str = "USER",
         plan_item_type: str = "ISSUE",
         description: Optional[str] = None,
         include_non_working_days: bool = False,
+        start_time: str = "09:00",
     ) -> list[PlanLog]:
         """
         创建计划
 
         Args:
             assignee_key: 分配人用户 key
-            plan_item_id: 计划项 ID (如 Issue key)
+            plan_item_id: 计划项 ID (必须是整数，如 Issue 的内部 ID)
             start_date: 开始日期
             end_date: 结束日期
             seconds_per_day: 每天计划的秒数
-            assignee_type: 分配人类型 (USER, TEAM)
             plan_item_type: 计划项类型 (ISSUE, PROJECT)
             description: 描述
             include_non_working_days: 是否包含非工作日
+            start_time: 开始时间，默认 09:00
 
         Returns:
             list[PlanLog]: 创建的计划日志列表
         """
         plan = Plan(
             assignee_key=assignee_key,
-            assignee_type=assignee_type,
             plan_item_id=plan_item_id,
             plan_item_type=plan_item_type,
-            start_date=start_date,
-            end_date=end_date,
+            day=start_date,  # day 字段使用开始日期
+            start=start_date,
+            end=end_date,
+            start_time=start_time,
             seconds_per_day=seconds_per_day,
             description=description,
             include_non_working_days=include_non_working_days,
@@ -307,33 +308,45 @@ class PlanResource(BaseResource):
 
     async def update_plan(
         self,
+        allocation_id: int,
         assignee_key: str,
-        plan_item_id: str,
+        plan_item_id: int,
         start_date: str,
         end_date: str,
         seconds_per_day: int,
-        assignee_type: str = "USER",
         plan_item_type: str = "ISSUE",
         description: Optional[str] = None,
         include_non_working_days: bool = False,
+        start_time: str = "09:00",
     ) -> list[PlanLog]:
         """
         更新计划
 
         Args:
-            同 create_plan
+            allocation_id: 资源分配 ID（必需）
+            assignee_key: 分配人用户 key
+            plan_item_id: 计划项 ID (必须是整数，如 Issue 的内部 ID)
+            start_date: 开始日期
+            end_date: 结束日期
+            seconds_per_day: 每天计划的秒数
+            plan_item_type: 计划项类型 (ISSUE, PROJECT)
+            description: 描述
+            include_non_working_days: 是否包含非工作日
+            start_time: 开始时间，默认 09:00
 
         Returns:
             list[PlanLog]: 更新后的计划日志列表
         """
         plan = Plan(
             assignee_key=assignee_key,
-            assignee_type=assignee_type,
             plan_item_id=plan_item_id,
             plan_item_type=plan_item_type,
-            start_date=start_date,
-            end_date=end_date,
+            day=start_date,  # day 字段使用开始日期
+            start=start_date,
+            end=end_date,
+            start_time=start_time,
             seconds_per_day=seconds_per_day,
+            allocation_id=allocation_id,  # 更新时必需
             description=description,
             include_non_working_days=include_non_working_days,
         )
