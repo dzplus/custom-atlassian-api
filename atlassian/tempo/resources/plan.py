@@ -219,8 +219,15 @@ class PlanResource(BaseResource):
         from_date: str,
         to_date: str,
         worker: Optional[list[str]] = None,
+        task_id: Optional[list[int]] = None,
         task_key: Optional[list[str]] = None,
+        include_subtasks: Optional[bool] = None,
+        project_id: Optional[list[int]] = None,
         project_key: Optional[list[str]] = None,
+        team_id: Optional[list[int]] = None,
+        role_id: Optional[list[int]] = None,
+        epic_key: Optional[list[str]] = None,
+        location_ids: Optional[list[int]] = None,
     ) -> list[PlanLog]:
         """
         搜索计划
@@ -229,8 +236,15 @@ class PlanResource(BaseResource):
             from_date: 开始日期 "2024-01-01"
             to_date: 结束日期 "2024-01-31"
             worker: 工作者用户 key 列表
+            task_id: Issue 数字 ID 列表
             task_key: Issue key 列表 (如 ["PROJ-100", "PROJ-200"])
+            include_subtasks: 是否包含子任务
+            project_id: 项目数字 ID 列表
             project_key: 项目 key 列表
+            team_id: 团队 ID 列表
+            role_id: 角色 ID 列表
+            epic_key: Epic key 列表
+            location_ids: 位置 ID 列表
 
         Returns:
             list[PlanLog]: 计划日志列表
@@ -239,8 +253,15 @@ class PlanResource(BaseResource):
             from_date=from_date,
             to_date=to_date,
             worker=worker,
+            task_id=task_id,
             task_key=task_key,
+            include_subtasks=include_subtasks,
+            project_id=project_id,
             project_key=project_key,
+            team_id=team_id,
+            role_id=role_id,
+            epic_key=epic_key,
+            location_ids=location_ids,
         )
         data = await self._client.post_json(
             f"{self.PLAN_PATH}/search",
@@ -253,16 +274,30 @@ class PlanResource(BaseResource):
         from_date: str,
         to_date: str,
         worker: Optional[list[str]] = None,
+        task_id: Optional[list[int]] = None,
         task_key: Optional[list[str]] = None,
+        include_subtasks: Optional[bool] = None,
+        project_id: Optional[list[int]] = None,
         project_key: Optional[list[str]] = None,
+        team_id: Optional[list[int]] = None,
+        role_id: Optional[list[int]] = None,
+        epic_key: Optional[list[str]] = None,
+        location_ids: Optional[list[int]] = None,
     ) -> list[dict]:
         """搜索计划原始数据"""
         params = PlanSearchParams(
             from_date=from_date,
             to_date=to_date,
             worker=worker,
+            task_id=task_id,
             task_key=task_key,
+            include_subtasks=include_subtasks,
+            project_id=project_id,
             project_key=project_key,
+            team_id=team_id,
+            role_id=role_id,
+            epic_key=epic_key,
+            location_ids=location_ids,
         )
         return await self._client.post_json(
             f"{self.PLAN_PATH}/search",

@@ -264,16 +264,24 @@ class Plan(BaseModel):
 
 
 class PlanSearchParams(BaseModel):
-    """计划搜索参数"""
+    """计划搜索参数
+
+    API 文档参考：POST /rest/tempo-planning/1/plan/search (PlanSearchBean)
+    """
     model_config = ConfigDict(populate_by_name=True)
 
     from_date: str = Field(alias="from")
     to_date: str = Field(alias="to")
     worker: Optional[list[str]] = None  # user keys
-    task_id: Optional[list[int]] = Field(None, alias="taskId")
-    task_key: Optional[list[str]] = Field(None, alias="taskKey")
+    task_id: Optional[list[int]] = Field(None, alias="taskId")  # issue 数字 ID
+    task_key: Optional[list[str]] = Field(None, alias="taskKey")  # issue key
+    include_subtasks: Optional[bool] = Field(None, alias="includeSubtasks")
     project_id: Optional[list[int]] = Field(None, alias="projectId")
     project_key: Optional[list[str]] = Field(None, alias="projectKey")
+    team_id: Optional[list[int]] = Field(None, alias="teamId")
+    role_id: Optional[list[int]] = Field(None, alias="roleId")
+    epic_key: Optional[list[str]] = Field(None, alias="epicKey")
+    location_ids: Optional[list[int]] = Field(None, alias="locationIds")
 
     def to_api_dict(self) -> dict:
         """转换为 API 请求格式（符合 Tempo Planner OpenAPI 规范）"""
@@ -287,8 +295,18 @@ class PlanSearchParams(BaseModel):
             data["taskId"] = self.task_id
         if self.task_key:
             data["taskKey"] = self.task_key
+        if self.include_subtasks is not None:
+            data["includeSubtasks"] = self.include_subtasks
         if self.project_id:
             data["projectId"] = self.project_id
         if self.project_key:
             data["projectKey"] = self.project_key
+        if self.team_id:
+            data["teamId"] = self.team_id
+        if self.role_id:
+            data["roleId"] = self.role_id
+        if self.epic_key:
+            data["epicKey"] = self.epic_key
+        if self.location_ids:
+            data["locationIds"] = self.location_ids
         return data
