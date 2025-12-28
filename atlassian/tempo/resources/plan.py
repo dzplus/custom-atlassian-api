@@ -19,9 +19,10 @@ class PlanResource(BaseResource):
     """
     Tempo 计划资源
 
-    包含两种 API:
+    包含三种 API:
     - Allocation: 资源分配 (长期计划)
     - Plan: 计划条目 (日级别计划)
+    - Activity Sources: 活动来源 (完成计划)
 
     Allocation API 端点:
     - GET /allocation - 获取资源分配
@@ -34,6 +35,10 @@ class PlanResource(BaseResource):
     - POST /plan/search - 搜索计划
     - POST /plan - 创建计划
     - PUT /plan - 更新计划
+    - PUT /plan/remove/planLog/{id} - 从日期移除计划
+
+    Activity Sources API 端点:
+    - POST /rest/tempo-core/1/activitysources - 完成计划（转为工作日志）
     """
 
     BASE_PATH = "/rest/tempo-planning/1"
@@ -98,7 +103,7 @@ class PlanResource(BaseResource):
     async def create_allocation(
         self,
         assignee_key: str,
-        plan_item_id: str,
+        plan_item_id: int,
         start_date: str,
         end_date: str,
         seconds_per_day: int,
@@ -112,9 +117,9 @@ class PlanResource(BaseResource):
 
         Args:
             assignee_key: 分配人用户 key
-            plan_item_id: 计划项 ID (如 Issue key)
-            start_date: 开始日期
-            end_date: 结束日期
+            plan_item_id: 计划项 ID (Issue 的数字 ID，非 key)
+            start_date: 开始日期 "2024-01-01"
+            end_date: 结束日期 "2024-01-31"
             seconds_per_day: 每天分配的秒数
             assignee_type: 分配人类型 (USER, TEAM)
             plan_item_type: 计划项类型 (ISSUE, PROJECT)
@@ -158,7 +163,7 @@ class PlanResource(BaseResource):
         self,
         allocation_id: int,
         assignee_key: str,
-        plan_item_id: str,
+        plan_item_id: int,
         start_date: str,
         end_date: str,
         seconds_per_day: int,
@@ -213,8 +218,9 @@ class PlanResource(BaseResource):
         self,
         from_date: str,
         to_date: str,
-        assignee_keys: Optional[list[str]] = None,
-        plan_item_ids: Optional[list[str]] = None,
+        worker: Optional[list[str]] = None,
+        task_key: Optional[list[str]] = None,
+        project_key: Optional[list[str]] = None,
     ) -> list[PlanLog]:
         """
         搜索计划
@@ -222,8 +228,9 @@ class PlanResource(BaseResource):
         Args:
             from_date: 开始日期 "2024-01-01"
             to_date: 结束日期 "2024-01-31"
-            assignee_keys: 分配人用户 key 列表
-            plan_item_ids: 计划项 ID 列表 (如 Issue keys)
+            worker: 工作者用户 key 列表
+            task_key: Issue key 列表 (如 ["PROJ-100", "PROJ-200"])
+            project_key: 项目 key 列表
 
         Returns:
             list[PlanLog]: 计划日志列表
@@ -231,8 +238,9 @@ class PlanResource(BaseResource):
         params = PlanSearchParams(
             from_date=from_date,
             to_date=to_date,
-            assignee_keys=assignee_keys,
-            plan_item_ids=plan_item_ids,
+            worker=worker,
+            task_key=task_key,
+            project_key=project_key,
         )
         data = await self._client.post_json(
             f"{self.PLAN_PATH}/search",
@@ -244,15 +252,17 @@ class PlanResource(BaseResource):
         self,
         from_date: str,
         to_date: str,
-        assignee_keys: Optional[list[str]] = None,
-        plan_item_ids: Optional[list[str]] = None,
+        worker: Optional[list[str]] = None,
+        task_key: Optional[list[str]] = None,
+        project_key: Optional[list[str]] = None,
     ) -> list[dict]:
         """搜索计划原始数据"""
         params = PlanSearchParams(
             from_date=from_date,
             to_date=to_date,
-            assignee_keys=assignee_keys,
-            plan_item_ids=plan_item_ids,
+            worker=worker,
+            task_key=task_key,
+            project_key=project_key,
         )
         return await self._client.post_json(
             f"{self.PLAN_PATH}/search",
@@ -267,23 +277,23 @@ class PlanResource(BaseResource):
         end_date: str,
         seconds_per_day: int,
         plan_item_type: str = "ISSUE",
+        start_time: str = "09:00",
         description: Optional[str] = None,
         include_non_working_days: bool = False,
-        start_time: str = "09:00",
     ) -> list[PlanLog]:
         """
         创建计划
 
         Args:
             assignee_key: 分配人用户 key
-            plan_item_id: 计划项 ID (必须是整数，如 Issue 的内部 ID)
-            start_date: 开始日期
-            end_date: 结束日期
+            plan_item_id: 计划项 ID (Issue 的数字 ID，非 key)
+            start_date: 开始日期 "2024-01-01"
+            end_date: 结束日期 "2024-01-31"
             seconds_per_day: 每天计划的秒数
-            plan_item_type: 计划项类型 (ISSUE, PROJECT)
+            plan_item_type: 计划项类型 (ISSUE, PROJECT, EPIC 等)
+            start_time: 开始时间 "09:00"
             description: 描述
             include_non_working_days: 是否包含非工作日
-            start_time: 开始时间，默认 09:00
 
         Returns:
             list[PlanLog]: 创建的计划日志列表
@@ -292,9 +302,8 @@ class PlanResource(BaseResource):
             assignee_key=assignee_key,
             plan_item_id=plan_item_id,
             plan_item_type=plan_item_type,
-            day=start_date,  # day 字段使用开始日期
-            start=start_date,
-            end=end_date,
+            start_date=start_date,
+            end_date=end_date,
             start_time=start_time,
             seconds_per_day=seconds_per_day,
             description=description,
@@ -315,24 +324,24 @@ class PlanResource(BaseResource):
         end_date: str,
         seconds_per_day: int,
         plan_item_type: str = "ISSUE",
-        description: Optional[str] = None,
-        include_non_working_days: bool = False,
         start_time: str = "09:00",
+        description: Optional[str] = None,
+        include_non_working_days: bool = True,
     ) -> list[PlanLog]:
         """
         更新计划
 
         Args:
-            allocation_id: 资源分配 ID（必需）
+            allocation_id: 计划分配 ID (从 create_plan 返回的 allocation_id)
             assignee_key: 分配人用户 key
-            plan_item_id: 计划项 ID (必须是整数，如 Issue 的内部 ID)
-            start_date: 开始日期
-            end_date: 结束日期
+            plan_item_id: 计划项 ID (Issue 的数字 ID)
+            start_date: 开始日期 "2024-01-01"
+            end_date: 结束日期 "2024-01-31"
             seconds_per_day: 每天计划的秒数
-            plan_item_type: 计划项类型 (ISSUE, PROJECT)
+            plan_item_type: 计划项类型 (ISSUE, PROJECT, EPIC 等)
+            start_time: 开始时间 "09:00"
             description: 描述
             include_non_working_days: 是否包含非工作日
-            start_time: 开始时间，默认 09:00
 
         Returns:
             list[PlanLog]: 更新后的计划日志列表
@@ -341,14 +350,13 @@ class PlanResource(BaseResource):
             assignee_key=assignee_key,
             plan_item_id=plan_item_id,
             plan_item_type=plan_item_type,
-            day=start_date,  # day 字段使用开始日期
-            start=start_date,
-            end=end_date,
+            start_date=start_date,
+            end_date=end_date,
             start_time=start_time,
             seconds_per_day=seconds_per_day,
-            allocation_id=allocation_id,  # 更新时必需
             description=description,
             include_non_working_days=include_non_working_days,
+            allocation_id=allocation_id,
         )
         data = await self._client.put_json(
             self.PLAN_PATH,
@@ -376,3 +384,36 @@ class PlanResource(BaseResource):
             params={"date": date},
         )
         return [PlanLog.model_validate(item) for item in data]
+
+    # ========== Activity Sources API (完成计划) ==========
+
+    ACTIVITY_SOURCES_PATH = "/rest/tempo-core/1/activitysources"
+
+    async def complete_plan_to_worklog(
+        self,
+        worklog_id: int,
+        allocation_id: int,
+        source_date: str,
+    ) -> dict:
+        """
+        完成计划 - 将计划转换为工作日志
+
+        Args:
+            worklog_id: 工作日志 ID (Tempo worklog ID)
+            allocation_id: 计划分配 ID (从 create_plan 返回的 allocation_id)
+            source_date: 计划日期 "2024-01-15"
+
+        Returns:
+            dict: API 响应
+        """
+        data = {
+            "targetType": "WORKLOG",
+            "targetId": str(worklog_id),
+            "sourceType": "PLAN",
+            "sourceId": str(allocation_id),
+            "sourceDate": source_date,
+        }
+        return await self._client.post_json(
+            self.ACTIVITY_SOURCES_PATH,
+            data=data,
+        )
