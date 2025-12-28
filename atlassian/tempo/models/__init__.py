@@ -24,6 +24,22 @@ from atlassian.tempo.models.plan import (
     PlanLog,
     PlanSearchParams,
 )
+from atlassian.tempo.models.core import (
+    Expense,
+    ExpenseCreate,
+    ExpenseUpdate,
+    ExpenseCategory,
+    UserSchedule,
+    DaySchedule,
+    Holiday,
+    WorkAttribute,
+    WorkAttributeCreate,
+    WorkAttributeType,
+    WorkAttributeValue,
+    StaticListValue,
+    ActivitySource,
+    ActivitySourceCreate,
+)
 
 __all__ = [
     # Worklog
@@ -44,4 +60,22 @@ __all__ = [
     "Plan",
     "PlanLog",
     "PlanSearchParams",
+    # Core - Expense
+    "Expense",
+    "ExpenseCreate",
+    "ExpenseUpdate",
+    "ExpenseCategory",
+    # Core - User Schedule
+    "UserSchedule",
+    "DaySchedule",
+    "Holiday",
+    # Core - Work Attribute
+    "WorkAttribute",
+    "WorkAttributeCreate",
+    "WorkAttributeType",
+    "WorkAttributeValue",
+    "StaticListValue",
+    # Core - Activity Sources
+    "ActivitySource",
+    "ActivitySourceCreate",
 ]

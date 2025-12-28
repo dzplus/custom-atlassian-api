@@ -19,10 +19,9 @@ class PlanResource(BaseResource):
     """
     Tempo 计划资源
 
-    包含三种 API:
+    包含两种 API:
     - Allocation: 资源分配 (长期计划)
     - Plan: 计划条目 (日级别计划)
-    - Activity Sources: 活动来源 (完成计划)
 
     Allocation API 端点:
     - GET /allocation - 获取资源分配
@@ -37,8 +36,7 @@ class PlanResource(BaseResource):
     - PUT /plan - 更新计划
     - PUT /plan/remove/planLog/{id} - 从日期移除计划
 
-    Activity Sources API 端点:
-    - POST /rest/tempo-core/1/activitysources - 完成计划（转为工作日志）
+    注意: 完成计划功能请使用 CoreResource.complete_plan_to_worklog()
     """
 
     BASE_PATH = "/rest/tempo-planning/1"
@@ -419,36 +417,3 @@ class PlanResource(BaseResource):
             params={"date": date},
         )
         return [PlanLog.model_validate(item) for item in data]
-
-    # ========== Activity Sources API (完成计划) ==========
-
-    ACTIVITY_SOURCES_PATH = "/rest/tempo-core/1/activitysources"
-
-    async def complete_plan_to_worklog(
-        self,
-        worklog_id: int,
-        allocation_id: int,
-        source_date: str,
-    ) -> dict:
-        """
-        完成计划 - 将计划转换为工作日志
-
-        Args:
-            worklog_id: 工作日志 ID (Tempo worklog ID)
-            allocation_id: 计划分配 ID (从 create_plan 返回的 allocation_id)
-            source_date: 计划日期 "2024-01-15"
-
-        Returns:
-            dict: API 响应
-        """
-        data = {
-            "targetType": "WORKLOG",
-            "targetId": str(worklog_id),
-            "sourceType": "PLAN",
-            "sourceId": str(allocation_id),
-            "sourceDate": source_date,
-        }
-        return await self._client.post_json(
-            self.ACTIVITY_SOURCES_PATH,
-            data=data,
-        )

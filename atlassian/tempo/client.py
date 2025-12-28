@@ -17,6 +17,7 @@ from atlassian.tempo.resources import (
     AccountResource,
     TeamResource,
     PlanResource,
+    CoreResource,
 )
 
 
@@ -110,6 +111,7 @@ class TempoClient(BaseHttpClient):
         self._account: Optional[AccountResource] = None
         self._team: Optional[TeamResource] = None
         self._plan: Optional[PlanResource] = None
+        self._core: Optional[CoreResource] = None
 
     @property
     def worklog(self) -> WorklogResource:
@@ -138,6 +140,13 @@ class TempoClient(BaseHttpClient):
         if self._plan is None:
             self._plan = PlanResource(self)
         return self._plan
+
+    @property
+    def core(self) -> CoreResource:
+        """核心资源 (tempo-core/1/) - 费用、用户日程、工作属性等"""
+        if self._core is None:
+            self._core = CoreResource(self)
+        return self._core
 
     # ========== 便捷方法 ==========
 

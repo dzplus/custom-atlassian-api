@@ -6,10 +6,12 @@ from atlassian.tempo.resources.worklog import WorklogResource
 from atlassian.tempo.resources.account import AccountResource
 from atlassian.tempo.resources.team import TeamResource
 from atlassian.tempo.resources.plan import PlanResource
+from atlassian.tempo.resources.core import CoreResource
 
 __all__ = [
     "WorklogResource",
     "AccountResource",
     "TeamResource",
     "PlanResource",
+    "CoreResource",
 ]
