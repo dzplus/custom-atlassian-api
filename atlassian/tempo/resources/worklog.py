@@ -152,9 +152,14 @@ class WorklogResource(BaseResource):
         from_date: str,
         to_date: str,
         worker: Optional[list[str]] = None,
-        issue_key: Optional[list[str]] = None,
+        task_id: Optional[list[int]] = None,
+        task_key: Optional[list[str]] = None,
+        project_id: Optional[list[int]] = None,
         project_key: Optional[list[str]] = None,
+        epic_key: Optional[list[str]] = None,
+        account_id: Optional[list[int]] = None,
         account_key: Optional[list[str]] = None,
+        include_subtasks: Optional[bool] = None,
     ) -> list[Worklog]:
         """
         搜索工时记录
@@ -163,9 +168,14 @@ class WorklogResource(BaseResource):
             from_date: 开始日期 "2024-01-01"
             to_date: 结束日期 "2024-01-31"
             worker: 工作者用户 key 列表
-            issue_key: Issue Key 列表
+            task_id: Issue 数字 ID 列表（注意：不是 key）
+            task_key: Issue Key 列表（如 ["NF-433"]）
+            project_id: 项目数字 ID 列表
             project_key: 项目 Key 列表
+            epic_key: Epic Key 列表
+            account_id: 账户数字 ID 列表
             account_key: 账户 Key 列表
+            include_subtasks: 是否包含子任务
 
         Returns:
             list[Worklog]: 工时记录列表
@@ -174,9 +184,14 @@ class WorklogResource(BaseResource):
             from_date=from_date,
             to_date=to_date,
             worker=worker,
-            issue_key=issue_key,
+            task_id=task_id,
+            task_key=task_key,
+            project_id=project_id,
             project_key=project_key,
+            epic_key=epic_key,
+            account_id=account_id,
             account_key=account_key,
+            include_subtasks=include_subtasks,
         )
         data = await self._client.post_json(
             f"{self.BASE_PATH}/search",
@@ -190,18 +205,28 @@ class WorklogResource(BaseResource):
         from_date: str,
         to_date: str,
         worker: Optional[list[str]] = None,
-        issue_key: Optional[list[str]] = None,
+        task_id: Optional[list[int]] = None,
+        task_key: Optional[list[str]] = None,
+        project_id: Optional[list[int]] = None,
         project_key: Optional[list[str]] = None,
+        epic_key: Optional[list[str]] = None,
+        account_id: Optional[list[int]] = None,
         account_key: Optional[list[str]] = None,
+        include_subtasks: Optional[bool] = None,
     ) -> list[dict]:
         """搜索工时记录原始数据"""
         params = WorklogSearchParams(
             from_date=from_date,
             to_date=to_date,
             worker=worker,
-            issue_key=issue_key,
+            task_id=task_id,
+            task_key=task_key,
+            project_id=project_id,
             project_key=project_key,
+            epic_key=epic_key,
+            account_id=account_id,
             account_key=account_key,
+            include_subtasks=include_subtasks,
         )
         return await self._client.post_json(
             f"{self.BASE_PATH}/search",
