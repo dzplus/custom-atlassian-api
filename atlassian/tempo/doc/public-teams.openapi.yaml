@@ -1,0 +1,1377 @@
+openapi: 3.0.1
+info:
+  title: Tempo Teams
+  description: Tempo Teams REST API is for developers who want to integrate with Tempo
+    add-ons. The REST API is a standard interface for interacting with the Tempo Teams
+    module.
+  termsOfService: https://www.tempo.io/terms-of-use
+  version: '1.0'
+  x-logo:
+    url: https://cdn2.hubspot.net/hubfs/2814970/openApi/TEMPO_OpenAPI.png
+    altText: Tempo Software
+    href: https://www.tempo.io/server-api-documentation/
+externalDocs:
+  description: Contact Tempo Customer Support.
+  url: https://tempo-io.atlassian.net/servicedesk/customer/portal/6
+servers:
+- url: http://{JIRA_BASE_URL}/rest/tempo-teams/2
+  variables:
+    JIRA_BASE_URL:
+      default: JIRA_BASE_URL
+security:
+- basicAuth: []
+paths:
+  /team:
+    get:
+      tags:
+      - Team
+      summary: Get all teams
+      operationId: getTeams_1
+      parameters:
+      - name: expand
+        in: query
+        description: Parameters to expand, Program bean if Program is linked to Team,
+          Lead User Bean if Team has leader
+        schema:
+          type: string
+          example: teamprogram,leaduser
+          default: 'false'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TeamBean'
+      x-public: true
+    post:
+      tags:
+      - Team
+      summary: Create team
+      operationId: createTeam_1
+      requestBody:
+        description: The team to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamBean'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /team/{id}:
+    get:
+      tags:
+      - Team
+      summary: Get team by id
+      operationId: getTeam_1
+      parameters:
+      - name: id
+        in: path
+        description: The team id
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /team/members:
+    post:
+      tags:
+      - Team
+      summary: Get all members for multiple team
+      operationId: getTeamMembersForMutlipleTeams
+      requestBody:
+        description: Export Worklog Information
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FindTeamMembersInTeamsInputBean'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TeamMemberBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /team/{id}/member/{memberId}:
+    put:
+      tags:
+      - Team
+      summary: Updates a member of a team
+      operationId: updateTeamMember
+      parameters:
+      - name: id
+        in: path
+        description: The team id
+        required: true
+        schema:
+          type: integer
+          format: int32
+      - name: memberId
+        in: path
+        description: The team member id
+        required: true
+        schema:
+          type: integer
+          format: int32
+      requestBody:
+        description: The team member
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamMemberBean'
+        required: true
+      responses:
+        '204':
+          description: No Content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamMemberBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+    delete:
+      tags:
+      - Team
+      summary: Deletes a team member from a team
+      operationId: deleteMemberDeprecated
+      parameters:
+      - name: id
+        in: path
+        description: The team id
+        required: true
+        schema:
+          type: integer
+          format: int32
+      - name: memberId
+        in: path
+        description: The team member id
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        '204':
+          description: Resource Deleted Successfully
+        4XX:
+          description: Bad Request
+      deprecated: true
+      x-public: true
+  /team/{id}/member/{memberId}/deactivate:
+    put:
+      tags:
+      - Team
+      summary: Deactivates a team member from a team
+      operationId: deactivateMemberDeprecated
+      parameters:
+      - name: id
+        in: path
+        description: The team id
+        required: true
+        schema:
+          type: integer
+          format: int32
+      - name: memberId
+        in: path
+        description: The team member id
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        '200':
+          description: Resource Updated Successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamMemberBean'
+        4XX:
+          description: Bad Request
+      deprecated: true
+      x-public: true
+  /team/{id}/member:
+    get:
+      tags:
+      - Team
+      summary: Get all members of a team
+      description: Team members can be both JIRA users and JIRA groups. In this endpoint
+        the default value for the member type is user.
+      operationId: getTeamMembers
+      parameters:
+      - name: id
+        in: path
+        description: The team id
+        required: true
+        schema:
+          type: integer
+          format: int32
+      - name: type
+        in: query
+        description: The member type
+        schema:
+          type: string
+          default: USER
+      - name: onlyActive
+        in: query
+        description: Include active members only
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TeamMemberBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+    post:
+      tags:
+      - Team
+      summary: Add a member to a team
+      operationId: addMember
+      parameters:
+      - name: id
+        in: path
+        description: The team id
+        required: true
+        schema:
+          type: integer
+          format: int32
+      requestBody:
+        description: The team member to add
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamMemberInputBean'
+        required: true
+      responses:
+        '204':
+          description: No Content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamMemberBean'
+      x-public: true
+components:
+  schemas:
+    GroupBean:
+      type: object
+      properties:
+        name:
+          type: string
+          xml:
+            attribute: true
+    TeamPermissionGroupBean:
+      type: object
+      properties:
+        name:
+          type: string
+        id:
+          type: integer
+          format: int32
+        permissions:
+          type: object
+          additionalProperties:
+            type: boolean
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserBean'
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupBean'
+    UserBean:
+      type: object
+      properties:
+        key:
+          type: string
+          xml:
+            attribute: true
+        displayName:
+          type: string
+          xml:
+            attribute: true
+        avatar:
+          type: object
+          additionalProperties:
+            type: string
+            format: uri
+        active:
+          type: boolean
+          xml:
+            attribute: true
+    PermissionListOutputBean:
+      type: object
+      properties:
+        permissions:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+    PermissionListInputBean:
+      type: object
+      properties:
+        permissions:
+          type: array
+          items:
+            type: string
+        date:
+          type: string
+          xml:
+            attribute: true
+    PermissionCollectionBean:
+      type: object
+      properties:
+        permissions:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+    TeamPermissionsOutputBean:
+      type: object
+      properties:
+        teamPermissions:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/PermissionCollectionBean'
+    PermissionPeriodBean:
+      type: object
+    UserPeriodPermissionsOutputBean:
+      type: object
+      properties:
+        userPermissions:
+          type: object
+          additionalProperties:
+            uniqueItems: true
+            type: array
+            items:
+              $ref: '#/components/schemas/PermissionPeriodBean'
+    UserPeriodPermissionsInputBean:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            type: string
+        from:
+          type: string
+        to:
+          type: string
+    LocationBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: The id of the location
+          format: int64
+          xml:
+            attribute: true
+        name:
+          type: string
+          description: Name of the location
+          xml:
+            attribute: true
+        isDefault:
+          type: boolean
+          description: Is this location the default location?
+          xml:
+            attribute: true
+        isArchived:
+          type: boolean
+          description: Is this location archived?
+          xml:
+            attribute: true
+        currentMembersCount:
+          type: integer
+          description: Total count of members in the location
+          format: int32
+          xml:
+            attribute: true
+        totalMembersCount:
+          type: integer
+          description: Total count of members that have been assigned to this location
+          format: int32
+          xml:
+            attribute: true
+        links:
+          $ref: '#/components/schemas/LocationLinksBean'
+    LocationLinksBean:
+      type: object
+      properties:
+        links:
+          $ref: '#/components/schemas/LocationLinksBeanLinks'
+      description: HATEOAS links
+    LocationLinksBeanLinks:
+      type: object
+      properties:
+        self:
+          $ref: '#/components/schemas/LocationLinksBeanLinksSelf'
+      description: Links
+    LocationLinksBeanLinksSelf:
+      type: object
+      properties:
+        href:
+          type: string
+          description: Link value
+          xml:
+            attribute: true
+      description: Link to self
+    UpdateLocationBean:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the location
+          xml:
+            attribute: true
+    CreateLocationBean:
+      required:
+      - The name of the location
+      type: object
+      properties:
+        The name of the location:
+          type: string
+          xml:
+            attribute: true
+      description: Create Location
+    UserLocationBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          xml:
+            attribute: true
+        locationId:
+          type: integer
+          description: The id of the Location
+          format: int64
+          example: 1
+          xml:
+            attribute: true
+        locationName:
+          type: string
+          description: The name of the Location
+          example: Montreal
+          xml:
+            attribute: true
+        userKey:
+          type: string
+          description: The user key
+          example: mary
+          xml:
+            attribute: true
+        startDate:
+          type: string
+          description: The date at which the user started being at this location
+          example: '"2019-12-30"'
+          xml:
+            attribute: true
+        endDate:
+          type: string
+          description: The date at which the user ended being at this location
+          example: '"2019-12-30"'
+          xml:
+            attribute: true
+        links:
+          type: object
+          example:
+            _links:
+              self:
+                href: /rest/tempo-teams/3/user-locations/64
+        isCurrent:
+          type: boolean
+          description: Is this the current userLocation for that user
+          example: true
+          xml:
+            attribute: true
+    CreateBulkUserLocationBean:
+      required:
+      - locationId
+      - startDate
+      - userKeys
+      type: object
+      properties:
+        locationId:
+          type: integer
+          description: The id of the Location
+          format: int64
+          xml:
+            attribute: true
+        userKeys:
+          type: array
+          description: The user keys
+          items:
+            type: string
+            description: The user keys
+        startDate:
+          type: string
+          description: The date at which the user started being at this location.
+          xml:
+            attribute: true
+      description: Bean for moving multiple members
+    UpdateUserLocationBean:
+      type: object
+      properties:
+        startDate:
+          type: string
+          description: The date at which the user started being at this location.
+          xml:
+            attribute: true
+        locationId:
+          type: integer
+          description: The Location id
+          format: int64
+          xml:
+            attribute: true
+      description: startDate is required when the User has at least one UserLocation
+    CreateUserLocationBean:
+      required:
+      - locationId
+      - startDate
+      - userKey
+      type: object
+      properties:
+        locationId:
+          type: integer
+          description: The id of the Location
+          format: int64
+          xml:
+            attribute: true
+        userKey:
+          type: string
+          description: The user key
+          xml:
+            attribute: true
+        startDate:
+          type: string
+          description: The date at which the user started being at this location.
+          xml:
+            attribute: true
+      description: startDate is required when the User has at least one UserLocation
+    ProgramBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Program id
+          format: int32
+          example: 12345
+          xml:
+            attribute: true
+        name:
+          type: string
+          description: Name of Program
+          example: Integration Program
+          xml:
+            attribute: true
+        manager:
+          $ref: '#/components/schemas/UserBean'
+      description: Is only displayed if the team has a program.
+    TeamBean:
+      required:
+      - name
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          readOnly: true
+          xml:
+            attribute: true
+        name:
+          type: string
+          description: Name of Team
+          example: DevOps-Team
+          xml:
+            attribute: true
+        mission:
+          type: string
+          description: Team Mission
+          readOnly: true
+          example: To be a good example
+          deprecated: true
+          xml:
+            attribute: true
+        summary:
+          type: string
+          description: Short summary
+          example: DevOps - New-York
+          xml:
+            attribute: true
+        lead:
+          type: string
+          description: User Key of Team Lead
+          example: johnDoe
+          xml:
+            attribute: true
+        teamProgram:
+          $ref: '#/components/schemas/ProgramBean'
+        leadUser:
+          $ref: '#/components/schemas/UserBean'
+        isPublic:
+          type: boolean
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: team
+    MemberBean:
+      type: object
+      properties:
+        teamMemberId:
+          type: integer
+          description: Team Member ID
+          format: int32
+          readOnly: true
+          example: 12345
+          xml:
+            attribute: true
+        name:
+          type: string
+          description: User name
+          readOnly: true
+          example: johnDoe
+          xml:
+            attribute: true
+        displayName:
+          type: string
+          description: Display name
+          readOnly: true
+          example: John Doe
+          xml:
+            name: displayname
+            attribute: true
+        type:
+          type: string
+          description: Member type
+          xml:
+            attribute: true
+          enum:
+          - USER
+          - GROUP
+          - GROUP_USER
+          - USER
+          - GROUP
+        avatar:
+          type: integer
+          description: Avatar URI
+          format: int64
+          readOnly: true
+          xml:
+            attribute: true
+        activeInJira:
+          type: boolean
+          readOnly: true
+          xml:
+            attribute: true
+        message:
+          type: string
+          readOnly: true
+          xml:
+            attribute: true
+        key:
+          type: string
+          xml:
+            attribute: true
+    TeamMemberBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Team member id
+          format: int32
+          readOnly: true
+          example: 12345
+          xml:
+            attribute: true
+        member:
+          $ref: '#/components/schemas/MemberBean'
+        membership:
+          $ref: '#/components/schemas/TeamMembershipBean'
+        groupForUser:
+          type: array
+          readOnly: true
+          items:
+            type: string
+            readOnly: true
+        groupsForUser:
+          type: array
+          readOnly: true
+          items:
+            type: string
+            readOnly: true
+      xml:
+        name: member
+    TeamMembershipBean:
+      properties:
+        availability:
+          type: string
+          xml:
+            attribute: true
+        dateFrom:
+          example: yyyy-MM-dd
+          nullable: true
+          type: string
+          xml:
+            attribute: true
+        dateFromANSI:
+          readOnly: true
+          type: string
+          xml:
+            attribute: true
+        dateTo:
+          example: yyyy-MM-dd
+          nullable: true
+          type: string
+          xml:
+            attribute: true
+        dateToANSI:
+          readOnly: true
+          type: string
+          xml:
+            attribute: true
+        id:
+          format: int32
+          readOnly: true
+          type: integer
+          xml:
+            attribute: true
+        role:
+          $ref: '#/components/schemas/TeamRoleBean'
+        status:
+          readOnly: true
+          type: string
+          xml:
+            attribute: true
+        teamId:
+          format: int32
+          readOnly: true
+          type: integer
+          xml:
+            attribute: true
+        teamMemberId:
+          format: int32
+          readOnly: true
+          type: integer
+          xml:
+            attribute: true
+      type: object
+      xml:
+        name: membership
+    TeamRoleBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Team Role id
+          format: int32
+          example: 12345
+          xml:
+            attribute: true
+        name:
+          type: string
+          description: Team Role name
+          readOnly: true
+          example: Developer
+          xml:
+            attribute: true
+        default:
+          type: boolean
+          description: Default Team Role
+          readOnly: true
+          enum:
+          - true
+          - false
+      xml:
+        name: role
+    CustomFieldBean:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Custom Field ID
+          example: '12345'
+          xml:
+            attribute: true
+        name:
+          type: string
+          description: Custom Field name
+          example: customFieldName
+          xml:
+            attribute: true
+        custom:
+          type: boolean
+          xml:
+            attribute: true
+        orderable:
+          type: boolean
+          xml:
+            attribute: true
+        navigable:
+          type: boolean
+          xml:
+            attribute: true
+        searchable:
+          type: boolean
+          xml:
+            attribute: true
+        schema:
+          $ref: '#/components/schemas/JsonTypeBean'
+    JsonTypeBean:
+      type: object
+      description: Schema bean
+    VersionBean:
+      type: object
+    TeamLinkBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Team link id
+          format: int32
+          example: 12345
+          xml:
+            attribute: true
+        scopeType:
+          type: string
+          description: Team link scope type
+          example: project,type
+          xml:
+            attribute: true
+          enum:
+          - board
+          - project
+        scope:
+          type: integer
+          format: int64
+          xml:
+            attribute: true
+        teamId:
+          type: integer
+          description: Team id
+          format: int32
+          example: 12345
+          xml:
+            attribute: true
+        teamName:
+          type: string
+          description: Team name
+          example: Dev Ops
+          xml:
+            attribute: true
+      xml:
+        name: link
+    FindTeamMembersInTeamsInputBean:
+      type: object
+      properties:
+        ids:
+          type: array
+          description: Team ids
+          example:
+          - '12345'
+          - '12345'
+          items:
+            type: integer
+            description: Team ids
+            format: int32
+        onlyActive:
+          type: boolean
+          description: Avtive members only
+          default: false
+    MemberInputBean:
+      required:
+      - name
+      - type
+      type: object
+      properties:
+        type:
+          type: string
+          example: USER
+          xml:
+            attribute: true
+          enum:
+          - USER
+          - GROUP
+        name:
+          type: string
+          description: User Key
+          example: johnDoe
+          xml:
+            attribute: true
+    TeamMemberInputBean:
+      type: object
+      properties:
+        member:
+          $ref: '#/components/schemas/MemberInputBean'
+        membership:
+          $ref: '#/components/schemas/TeamMembershipInputBean'
+      xml:
+        name: member
+    TeamMembershipInputBean:
+      required:
+      - availability
+      - dateFrom
+      - dateTo
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/TeamRoleInputBean'
+        dateFrom:
+          type: string
+          example: yyyy-MM-dd
+          xml:
+            attribute: true
+        dateTo:
+          type: string
+          example: yyyy-MM-dd
+          xml:
+            attribute: true
+        availability:
+          type: string
+          description: Percentage availability up to 100
+          example: '100'
+          xml:
+            attribute: true
+      xml:
+        name: membership
+    TeamRoleInputBean:
+      required:
+      - id
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          example: 12345
+          xml:
+            attribute: true
+    UserWithMembershipInfoBean:
+      type: object
+      properties:
+        name:
+          type: string
+          description: User Name
+          example: johnDoe
+          xml:
+            attribute: true
+        key:
+          type: string
+          xml:
+            attribute: true
+        displayname:
+          type: string
+          description: Display Name
+          example: John Doe
+          xml:
+            attribute: true
+        avatar:
+          type: object
+          additionalProperties:
+            type: string
+            description: User Avatar
+            format: uri
+            example: http://www.example.com
+          description: User Avatar
+          example: http://www.example.com
+        jiraUser:
+          type: boolean
+          description: Jira User
+          xml:
+            attribute: true
+          enum:
+          - true
+          - false
+    UserPickerResultsWrapper:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserPickerUser'
+        footer:
+          type: string
+    UserPickerUser:
+      type: object
+      properties:
+        name:
+          type: string
+        html:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+    SchemeBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        name:
+          type: string
+          xml:
+            attribute: true
+    WorkingDaysBean:
+      type: object
+      properties:
+        id:
+          type: string
+          xml:
+            attribute: true
+        user:
+          $ref: '#/components/schemas/UserBean'
+        workloadScheme:
+          $ref: '#/components/schemas/SchemeBean'
+        holidayScheme:
+          $ref: '#/components/schemas/SchemeBean'
+    UserIndexBean:
+      type: object
+      properties:
+        name:
+          type: string
+          xml:
+            attribute: true
+        key:
+          type: string
+          xml:
+            attribute: true
+        displayName:
+          type: string
+          xml:
+            name: displayname
+            attribute: true
+        avatar:
+          type: object
+          additionalProperties:
+            type: string
+            format: uri
+        jiraUser:
+          type: boolean
+          xml:
+            attribute: true
+        roleNames:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+    UserIndexBeanPaginatedResult:
+      type: object
+      properties:
+        maxResults:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        startAt:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        total:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserIndexBean'
+    UserIndexSearchBean:
+      type: object
+      properties:
+        userKeys:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        from:
+          type: string
+          xml:
+            attribute: true
+        to:
+          type: string
+          xml:
+            attribute: true
+        groupNames:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        roleNames:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        roleIds:
+          uniqueItems: true
+          type: array
+          items:
+            type: integer
+            format: int32
+        teamIds:
+          uniqueItems: true
+          type: array
+          items:
+            type: integer
+            format: int32
+        startAt:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        maxResults:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+    UserIndexSearchParams:
+      type: object
+      properties:
+        userKeys:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        userNames:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        groupNames:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        roleNames:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        roleIds:
+          uniqueItems: true
+          type: array
+          items:
+            type: integer
+            format: int32
+        teamNames:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        teamIds:
+          uniqueItems: true
+          type: array
+          items:
+            type: integer
+            format: int32
+        from:
+          type: string
+        to:
+          type: string
+        startAt:
+          type: integer
+          format: int32
+        maxResults:
+          type: integer
+          format: int32
+    ExplicitVisibilityInputBean:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            type: string
+        groups:
+          type: array
+          items:
+            type: string
+    VisibilityBean:
+      type: object
+      properties:
+        isPublic:
+          type: boolean
+          xml:
+            attribute: true
+    AffectedEntityBean:
+      type: object
+      properties:
+        descriptionKey:
+          type: string
+        numberOfOccurrences:
+          type: integer
+          format: int64
+    UserSchemaLocationBean:
+      type: object
+      properties:
+        name:
+          type: string
+        id:
+          type: integer
+          format: int64
+    UserSchemeBean:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserBean'
+        staffId:
+          type: string
+          xml:
+            attribute: true
+        holidayScheme:
+          $ref: '#/components/schemas/SchemeBean'
+        workloadScheme:
+          $ref: '#/components/schemas/SchemeBean'
+        teamMemberships:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamMembershipBean'
+        userLocationBean:
+          $ref: '#/components/schemas/UserSchemaLocationBean'
+    OrderByBean:
+      type: object
+      properties:
+        column:
+          type: string
+          xml:
+            attribute: true
+        ascending:
+          type: boolean
+          xml:
+            attribute: true
+    UserSchemePaginatedQueryBean:
+      type: object
+      properties:
+        userKeys:
+          type: array
+          items:
+            type: string
+        teamIds:
+          type: array
+          items:
+            type: integer
+            format: int32
+        roleIds:
+          type: array
+          items:
+            type: integer
+            format: int32
+        locationIds:
+          type: array
+          items:
+            type: integer
+            format: int32
+        groupNames:
+          type: array
+          items:
+            type: string
+        from:
+          type: string
+        to:
+          type: string
+        holidaySchemeIds:
+          type: array
+          items:
+            type: integer
+            format: int32
+        workloadSchemeIds:
+          type: array
+          items:
+            type: integer
+            format: int32
+        staffSearchString:
+          type: string
+        includeInactiveJiraUsers:
+          type: boolean
+        orderBy:
+          $ref: '#/components/schemas/OrderByBean'
+        offset:
+          type: integer
+          format: int32
+        limit:
+          type: integer
+          format: int32
+    SimpleUserSchemeQueryBean:
+      type: object
+      properties:
+        userKeys:
+          type: array
+          items:
+            type: string
+        teamIds:
+          type: array
+          items:
+            type: integer
+            format: int32
+        roleIds:
+          type: array
+          items:
+            type: integer
+            format: int32
+        locationIds:
+          type: array
+          items:
+            type: integer
+            format: int32
+        groupNames:
+          type: array
+          items:
+            type: string
+        from:
+          type: string
+        to:
+          type: string
+        holidaySchemeIds:
+          type: array
+          items:
+            type: integer
+            format: int32
+        workloadSchemeIds:
+          type: array
+          items:
+            type: integer
+            format: int32
+        staffSearchString:
+          type: string
+        includeInactiveJiraUsers:
+          type: boolean
+        orderBy:
+          $ref: '#/components/schemas/OrderByBean'
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic

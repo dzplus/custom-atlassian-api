@@ -1,0 +1,1470 @@
+openapi: 3.0.1
+info:
+  title: Tempo Planner
+  description: Tempo Planning REST API is for developers who want to integrate with
+    Tempo add-ons. The REST API is a standard interface for interacting with the Tempo
+    Planning API module.
+  termsOfService: https://www.tempo.io/terms-of-use
+  version: '1.0'
+  x-logo:
+    url: https://cdn2.hubspot.net/hubfs/2814970/openApi/TEMPO_OpenAPI.png
+    altText: Tempo Software
+    href: https://www.tempo.io/server-api-documentation/
+externalDocs:
+  description: Contact Tempo Customer Support.
+  url: https://tempo-io.atlassian.net/servicedesk/customer/portal/6
+servers:
+- url: http://{JIRA_BASE_URL}/rest/tempo-planning/1
+  variables:
+    JIRA_BASE_URL:
+      default: JIRA_BASE_URL
+security:
+- basicAuth: []
+paths:
+  /allocation:
+    get:
+      tags:
+      - Allocation
+      summary: Get all plans for a given query.
+      description: Gets all plans for a given query. If neither endDate and startDate
+        are defined, then the search period will be one month from the current date
+        (today).
+      operationId: getAllocations
+      parameters:
+      - name: assigneeKeys
+        in: query
+        description: 'Example: assigneeKeys=johnDoe&assigneeKeys=joeSchmoe, can be
+          either usernames or team ids, according to assigneeType'
+        schema:
+          type: array
+          items:
+            type: string
+      - name: assigneeType
+        in: query
+        description: Type of assignee.
+        schema:
+          type: string
+          enum:
+          - USER
+          - TEAM
+      - name: planItemId
+        in: query
+        description: ID of the item which the plan is for.
+        schema:
+          type: integer
+          format: int64
+      - name: planItemType
+        in: query
+        description: Type of the item which the plan is for.
+        schema:
+          type: string
+      - name: startDate
+        in: query
+        description: Start of search period. If this is defined but no endDate is
+          defined, it will query plans one month ahead from now. **INCLUSIVE**
+        schema:
+          type: string
+        example: yyyy-MM-dd
+      - name: endDate
+        in: query
+        description: End of search period. If this is defined but no startDate is
+          defined, it will query plans one month back from now. **INCLUSIVE**
+        schema:
+          type: string
+        example: yyyy-MM-dd
+      - name: expandReflections
+        in: query
+        description: If true then all user plans that are reflected from a team plan
+          are also included.
+        schema:
+          type: boolean
+          default: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AllocationBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+    post:
+      tags:
+      - Allocation
+      summary: Create a basic Plan
+      operationId: postAllocation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AllocationInputBean'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /allocation/{allocationId}:
+    get:
+      tags:
+      - Allocation
+      summary: Get plan by ID
+      description: Get a specific plan by the plan ID
+      operationId: getAllocation
+      parameters:
+      - name: allocationId
+        in: path
+        description: ID of the plan.
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 12345
+      - name: expand
+        in: query
+        description: If set to 'children', then all reflected and recurring plans
+          for the specified plan are also fetched.
+        schema:
+          type: string
+        example: children
+      - name: startDate
+        in: query
+        description: Start date of the period of desired recurring plans. Only needed
+          if expand is set. **INCLUSIVE**
+        schema:
+          type: string
+        example: yyyy-MM-dd
+      - name: endDate
+        in: query
+        description: End Date of the period of desired recurring plans. Only needed
+          if expand is set. **INCLUSIVE**
+        schema:
+          type: string
+        example: yyyy-MM-dd
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+    put:
+      tags:
+      - Allocation
+      summary: Update an existing Plan.
+      operationId: updateAllocation
+      parameters:
+      - name: allocationId
+        in: path
+        description: ID of Plan.
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 12345
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AllocationInputBean'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+    delete:
+      tags:
+      - Allocation
+      summary: Delete an existing Plan.
+      operationId: deleteAllocation
+      parameters:
+      - name: allocationId
+        in: path
+        description: ID of the Plan.
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 12345
+      responses:
+        '204':
+          description: No Content
+        4XX:
+          description: Bad Request
+      x-public: true
+  /plan/remove/planLog/{planId}:
+    put:
+      tags:
+      - Plan
+      summary: Remove Plan from Day
+      operationId: removePlanForDay
+      parameters:
+      - name: planId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 12345
+      - name: date
+        in: query
+        description: Date of the day from which you want to delete the plan.
+        schema:
+          type: string
+        example: yyyy-MM-dd
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlanLogBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /plan/search:
+    post:
+      tags:
+      - Plan
+      summary: Search for Plans within given Date Range
+      description: By default, if no other fields than "from" and "to" are sent, then
+        only plans for logged in user will be returned.
+      operationId: searchPlanLogs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanSearchBean'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlanLogBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /plan:
+    put:
+      tags:
+      - Plan
+      summary: Update Plan
+      operationId: updatePlan
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanBean'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlanLogBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+    post:
+      tags:
+      - Plan
+      summary: Create Plan
+      operationId: postPlan
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanBean'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlanLogBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+components:
+  schemas:
+    CapacityBean:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemBean'
+        totalNumberOfResources:
+          type: integer
+          format: int64
+        totalCapacity:
+          $ref: '#/components/schemas/UnitBean'
+        totalAvailable:
+          $ref: '#/components/schemas/UnitBean'
+        totalPlanned:
+          $ref: '#/components/schemas/UnitBean'
+        totalFilteredPlanned:
+          $ref: '#/components/schemas/UnitBean'
+        subPeriodItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubPeriodItemBean'
+    ItemBean:
+      type: object
+      properties:
+        key:
+          type: string
+        name:
+          type: string
+        numberOfResources:
+          type: integer
+          format: int64
+        capacity:
+          $ref: '#/components/schemas/UnitBean'
+        available:
+          $ref: '#/components/schemas/UnitBean'
+        planned:
+          $ref: '#/components/schemas/UnitBean'
+        filteredPlanned:
+          $ref: '#/components/schemas/UnitBean'
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserBean'
+        subPeriodItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubPeriodItemBean'
+    SubPeriodItemBean:
+      type: object
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+        capacity:
+          $ref: '#/components/schemas/UnitBean'
+        available:
+          $ref: '#/components/schemas/UnitBean'
+        planned:
+          $ref: '#/components/schemas/UnitBean'
+        filteredPlanned:
+          $ref: '#/components/schemas/UnitBean'
+    UnitBean:
+      type: object
+      properties:
+        fte:
+          type: number
+          format: double
+    UserBean:
+      type: object
+      properties:
+        name:
+          type: string
+          example: johnDoe
+          xml:
+            attribute: true
+        key:
+          type: string
+          example: johndoe123
+          xml:
+            attribute: true
+        displayName:
+          type: string
+          example: John Doe
+          xml:
+            attribute: true
+    CapacityInputBean:
+      type: object
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+        groupBy:
+          type: string
+        granularity:
+          type: string
+        teamIds:
+          type: array
+          items:
+            type: integer
+            format: int32
+        workerKeys:
+          type: array
+          items:
+            type: string
+        roleIds:
+          type: array
+          items:
+            type: integer
+            format: int32
+        epicKeys:
+          type: array
+          items:
+            type: string
+        accountIds:
+          type: array
+          items:
+            type: integer
+            format: int32
+        issueKeys:
+          type: array
+          items:
+            type: string
+        programIds:
+          type: array
+          items:
+            type: integer
+            format: int32
+        projectKeys:
+          type: array
+          items:
+            type: string
+        locationIds:
+          type: array
+          items:
+            type: integer
+            format: int32
+        includeSubTasks:
+          type: boolean
+          xml:
+            name: includeSubtasks
+            attribute: true
+    FilterIdentifier:
+      type: object
+      properties:
+        filterKey:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: filter
+    AllocationBean:
+      required:
+      - assignee
+      - commitment
+      - end
+      - planItem
+      - recurrence
+      - scope
+      - start
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          readOnly: true
+          xml:
+            attribute: true
+        assignee:
+          $ref: '#/components/schemas/KeyTypePairBean'
+        planItem:
+          $ref: '#/components/schemas/PlanItemBean'
+        scope:
+          $ref: '#/components/schemas/IdTypePairBean'
+        commitment:
+          maximum: 100
+          minimum: 1
+          type: number
+          format: double
+          example: 100
+          xml:
+            attribute: true
+        secondsPerDay:
+          type: integer
+          format: int64
+          xml:
+            attribute: true
+        includeNonWorkingDays:
+          type: boolean
+          description: Include Weekends and Holidays?
+          xml:
+            attribute: true
+          default: false
+        start:
+          type: string
+          example: yyyy-MM-dd**Inclusive**
+        startTime:
+          type: string
+        end:
+          type: string
+          example: yyyy-MM-dd**Inclusive**
+        description:
+          type: string
+          xml:
+            attribute: true
+        seconds:
+          type: integer
+          format: int64
+        created:
+          type: string
+        createdBy:
+          type: string
+        updated:
+          type: string
+        updatedBy:
+          type: string
+        recurrence:
+          $ref: '#/components/schemas/RecurrenceBean'
+        children:
+          type: array
+          readOnly: true
+          items:
+            $ref: '#/components/schemas/AllocationBean'
+        planApproval:
+          $ref: '#/components/schemas/PlanApprovalBean'
+      xml:
+        name: allocation
+    ApprovalAction:
+      type: object
+      properties:
+        key:
+          type: string
+          xml:
+            attribute: true
+        message:
+          type: string
+          xml:
+            attribute: true
+      readOnly: true
+    IdTypePairBean:
+      required:
+      - id
+      - type
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 12345
+          xml:
+            attribute: true
+        type:
+          type: string
+          example: team
+          xml:
+            attribute: true
+          enum:
+          - user
+          - team
+    KeyTypePairBean:
+      required:
+      - key
+      - type
+      type: object
+      properties:
+        key:
+          type: string
+          description: Input would change according to specified type.
+          example: johnDoe
+          xml:
+            attribute: true
+        type:
+          type: string
+          example: USER
+          xml:
+            attribute: true
+          enum:
+          - USER
+          - TEAM
+    PlanApprovalBean:
+      type: object
+      properties:
+        requester:
+          $ref: '#/components/schemas/UserBean'
+        reviewer:
+          $ref: '#/components/schemas/UserBean'
+        actor:
+          $ref: '#/components/schemas/UserBean'
+        statusCode:
+          type: integer
+          format: int32
+          readOnly: true
+          xml:
+            attribute: true
+        latestAction:
+          $ref: '#/components/schemas/ApprovalAction'
+        updated:
+          type: string
+          readOnly: true
+        created:
+          type: string
+          readOnly: true
+      xml:
+        name: planApproval
+    PlanItemBean:
+      required:
+      - id
+      - type
+      type: object
+      properties:
+        key:
+          type: string
+          readOnly: true
+          xml:
+            attribute: true
+        id:
+          type: integer
+          format: int64
+          example: 12345
+          xml:
+            attribute: true
+        type:
+          type: string
+          example: ISSUE
+          xml:
+            attribute: true
+          enum:
+          - COMPONENT
+          - EPIC
+          - ISSUE
+          - PROJECT
+          - SPRINT
+          - VERSION
+          - ISSUE
+          - EPIC
+          - PROJECT
+          - COMPONENT
+          - SPRINT
+          - VERSION
+        name:
+          type: string
+          readOnly: true
+          xml:
+            attribute: true
+        description:
+          type: string
+          readOnly: true
+          xml:
+            attribute: true
+        projectKey:
+          type: string
+          readOnly: true
+          xml:
+            attribute: true
+        projectId:
+          type: integer
+          format: int64
+          readOnly: true
+          xml:
+            attribute: true
+        projectColor:
+          type: string
+          readOnly: true
+          xml:
+            attribute: true
+        avatarUrls:
+          type: object
+          additionalProperties:
+            type: string
+            readOnly: true
+          readOnly: true
+        planItemUrl:
+          type: string
+          readOnly: true
+          xml:
+            attribute: true
+        accountKey:
+          type: string
+          readOnly: true
+          xml:
+            attribute: true
+        estimatedRemainingSeconds:
+          type: integer
+          format: int64
+          readOnly: true
+        parentKey:
+          type: string
+          readOnly: true
+        parentIssue:
+          $ref: '#/components/schemas/RootIssueBean'
+        epicKey:
+          type: string
+          readOnly: true
+        epicIssue:
+          $ref: '#/components/schemas/RootIssueBean'
+        epicName:
+          type: string
+          readOnly: true
+      xml:
+        name: planItem
+    RecurrenceBean:
+      required:
+      - rule
+      type: object
+      properties:
+        parent:
+          $ref: '#/components/schemas/IdTypePairBean'
+        endDate:
+          type: string
+          xml:
+            attribute: true
+        rule:
+          type: string
+          example: NEVER
+          xml:
+            attribute: true
+          enum:
+          - NEVER
+          - WEEKLY
+          - BI-WEEKLY
+          - MONTHLY
+    RootIssueBean:
+      type: object
+      properties:
+        summary:
+          type: string
+        iconUrl:
+          type: string
+        estimatedRemainingSeconds:
+          type: integer
+          format: int64
+        originalEstimateSeconds:
+          type: integer
+          format: int64
+      readOnly: true
+    AllocationInputBean:
+      required:
+      - end
+      - secondsPerDay
+      - start
+      type: object
+      properties:
+        assignee:
+          $ref: '#/components/schemas/KeyTypePairBean'
+        planItem:
+          $ref: '#/components/schemas/PlanItemBean'
+        scope:
+          $ref: '#/components/schemas/IdTypePairBean'
+        commitment:
+          maximum: 100
+          minimum: 1
+          type: number
+          format: double
+          example: 100
+          xml:
+            attribute: true
+        secondsPerDay:
+          type: integer
+          format: int64
+          example: 3600
+          xml:
+            attribute: true
+        includeNonWorkingDays:
+          type: boolean
+          description: Include Weekends and Holidays?
+          xml:
+            attribute: true
+          default: false
+        start:
+          type: string
+          description: Start date is **Inclusive**
+          example: yyyy-MM-dd
+          xml:
+            attribute: true
+        end:
+          type: string
+          description: End date is **Inclusive**
+          example: yyyy-MM-dd
+          xml:
+            attribute: true
+        description:
+          type: string
+          example: This is a description.
+          xml:
+            attribute: true
+        recurrence:
+          $ref: '#/components/schemas/RecurrenceInputBean'
+        planApproval:
+          $ref: '#/components/schemas/PlanApprovalBean'
+    RecurrenceInputBean:
+      type: object
+      properties:
+        endDate:
+          type: string
+          example: yyyy-MM-dd
+          xml:
+            attribute: true
+        rule:
+          type: string
+          example: NEVER
+          xml:
+            attribute: true
+          enum:
+          - NEVER
+          - WEEKLY
+          - BI-WEEKLY
+          - MONTHLY
+    CapacityReport:
+      type: object
+      properties:
+        header:
+          $ref: '#/components/schemas/ReportRowBeanObjectIntervalHeaderEntry'
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportRowBeanRowHeaderEntry'
+        footer:
+          $ref: '#/components/schemas/ReportRowBean'
+    Entry:
+      type: object
+      properties:
+        allocated:
+          type: number
+          format: float
+          xml:
+            attribute: true
+        fte:
+          type: number
+          format: float
+          xml:
+            name: FTE
+            attribute: true
+        ftetitle:
+          type: string
+          xml:
+            name: FTETitle
+            attribute: true
+        fteformatted:
+          type: string
+          xml:
+            name: FTEFormatted
+            attribute: true
+        remainingTitle:
+          type: string
+          xml:
+            attribute: true
+        totalRemainingTitle:
+          type: string
+          xml:
+            attribute: true
+        totalRemaining:
+          type: number
+          format: float
+          xml:
+            attribute: true
+        availabilityTitle:
+          type: string
+          xml:
+            attribute: true
+        totalAvailability:
+          type: number
+          format: float
+          xml:
+            attribute: true
+        plannedVersusAvailablity:
+          type: string
+          xml:
+            attribute: true
+        plannedVersusAvailability:
+          type: string
+          xml:
+            attribute: true
+        totalPlannedVersusTotalAvailablity:
+          type: string
+          xml:
+            attribute: true
+        totalPlannedVersusTotalAvailability:
+          type: string
+          xml:
+            attribute: true
+        utilisation:
+          type: number
+          format: float
+          xml:
+            attribute: true
+        totalUtilisation:
+          type: number
+          format: float
+          xml:
+            attribute: true
+        totalAllocated:
+          type: number
+          format: float
+          xml:
+            attribute: true
+        availability:
+          type: number
+          format: float
+          xml:
+            attribute: true
+        remaining:
+          type: number
+          format: float
+          xml:
+            attribute: true
+    IntervalHeaderEntry:
+      type: object
+      properties:
+        value:
+          type: string
+          xml:
+            attribute: true
+        current:
+          type: boolean
+          xml:
+            attribute: true
+        start:
+          type: string
+          format: date-time
+          xml:
+            attribute: true
+        end:
+          type: string
+          format: date-time
+          xml:
+            attribute: true
+    ReportRowBean:
+      type: object
+      properties:
+        header:
+          type: object
+        columns:
+          type: array
+          items:
+            type: object
+    ReportRowBeanObjectIntervalHeaderEntry:
+      type: object
+      properties:
+        header:
+          type: object
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntervalHeaderEntry'
+    ReportRowBeanRowHeaderEntry:
+      type: object
+      properties:
+        header:
+          $ref: '#/components/schemas/RowHeader'
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/Entry'
+    RowHeader:
+      type: object
+      properties:
+        name:
+          type: string
+          xml:
+            attribute: true
+        memberId:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+    PlanApprovalSearchBean:
+      type: object
+      properties:
+        statusCodes:
+          type: array
+          items:
+            type: integer
+            format: int32
+        includePastPlans:
+          type: boolean
+          xml:
+            attribute: true
+    PlanPermissionBean:
+      type: object
+      properties:
+        canApprovePlans:
+          type: boolean
+        canEditPlans:
+          type: boolean
+    PlanApprovalInputBean:
+      type: object
+      properties:
+        reviewerKey:
+          type: string
+        statusCode:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+      xml:
+        name: planApproval
+    PlanSearchBean:
+      required:
+      - from
+      - to
+      type: object
+      properties:
+        from:
+          type: string
+          format: date
+          xml:
+            attribute: true
+        to:
+          type: string
+          format: date
+          xml:
+            attribute: true
+        worker:
+          type: array
+          items:
+            type: string
+        taskId:
+          type: array
+          items:
+            type: integer
+            format: int64
+        taskKey:
+          type: array
+          items:
+            type: string
+        includeSubtasks:
+          type: boolean
+          writeOnly: true
+        projectId:
+          type: array
+          items:
+            type: integer
+            format: int64
+        projectKey:
+          type: array
+          items:
+            type: string
+        teamId:
+          type: array
+          items:
+            type: integer
+            format: int32
+        roleId:
+          type: array
+          items:
+            type: integer
+            format: int32
+        epicKey:
+          type: array
+          items:
+            type: string
+        locationIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+    PlanLogBean:
+      type: object
+      properties:
+        allocationId:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        assignee:
+          type: string
+          xml:
+            attribute: true
+        planItemId:
+          type: integer
+          format: int64
+          xml:
+            attribute: true
+        planItemInfo:
+          $ref: '#/components/schemas/PlanItemBean'
+        planDescription:
+          type: string
+          xml:
+            attribute: true
+        day:
+          type: string
+          xml:
+            attribute: true
+        timePlannedSeconds:
+          type: number
+          format: double
+          xml:
+            attribute: true
+        secondsPerDay:
+          type: integer
+          format: int64
+          xml:
+            attribute: true
+        includeNonWorkingDays:
+          type: boolean
+          xml:
+            attribute: true
+        planCreator:
+          type: string
+          xml:
+            attribute: true
+        dateCreated:
+          type: string
+          xml:
+            attribute: true
+        dateUpdated:
+          type: string
+          xml:
+            attribute: true
+        planStart:
+          type: string
+          xml:
+            attribute: true
+        planStartTime:
+          type: string
+          xml:
+            attribute: true
+        planEnd:
+          type: string
+          xml:
+            attribute: true
+        planApproval:
+          $ref: '#/components/schemas/PlanApprovalBean'
+        parent:
+          $ref: '#/components/schemas/PlanLogBean'
+        location:
+          $ref: '#/components/schemas/PlanLogLocationBean'
+    PlanLogLocationBean:
+      type: object
+      properties:
+        name:
+          type: string
+          xml:
+            attribute: true
+        id:
+          type: integer
+          format: int64
+          xml:
+            attribute: true
+    PlanBean:
+      required:
+      - assigneeKey
+      - day
+      - end
+      - includeNonWorkingDays
+      - planItemId
+      - planItemType
+      - secondsPerDay
+      - start
+      - startTime
+      type: object
+      properties:
+        allocationId:
+          type: integer
+          format: int32
+          readOnly: true
+          example: 12345
+          xml:
+            attribute: true
+        assigneeKey:
+          type: string
+          example: johnDoe
+          xml:
+            attribute: true
+        description:
+          type: string
+          example: This is a description.
+          xml:
+            attribute: true
+        start:
+          type: string
+          example: yyyy-MM-dd
+          xml:
+            attribute: true
+        startTime:
+          type: string
+          example: HH:MM
+          xml:
+            attribute: true
+        end:
+          type: string
+          example: yyyy-MM-dd
+          xml:
+            attribute: true
+        day:
+          type: string
+          example: yyyy-MM-dd
+          xml:
+            attribute: true
+        planItemType:
+          type: string
+          xml:
+            attribute: true
+          enum:
+          - COMPONENT
+          - EPIC
+          - ISSUE
+          - PROJECT
+          - SPRINT
+          - VERSION
+        planItemId:
+          type: integer
+          description: ID for the item (dependant on the planItemType) which you are
+            planning for.
+          format: int64
+          example: 12345
+          xml:
+            attribute: true
+        plannedSeconds:
+          type: integer
+          format: int64
+          xml:
+            attribute: true
+        secondsPerDay:
+          type: integer
+          format: int64
+          example: 3600
+          xml:
+            attribute: true
+        includeNonWorkingDays:
+          type: boolean
+          description: Include Weekends and Holidays?
+          xml:
+            attribute: true
+          default: false
+        partialUpdate:
+          type: boolean
+          xml:
+            attribute: true
+        planApproval:
+          $ref: '#/components/schemas/PlanApprovalInputBean'
+      xml:
+        name: plan
+    PlanDayScheduleBean:
+      type: object
+    ResourceOverviewSearchBean:
+      type: object
+      properties:
+        assigneeKeys:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        startDate:
+          type: string
+          xml:
+            attribute: true
+        endDate:
+          type: string
+          xml:
+            attribute: true
+        withPlanItemInfo:
+          type: boolean
+          xml:
+            attribute: true
+    FilePart:
+      type: object
+      properties:
+        formField:
+          type: boolean
+        contentType:
+          type: string
+        name:
+          type: string
+        value:
+          type: string
+        inputStream:
+          type: object
+    CSVImportMappedEntry:
+      type: object
+      properties:
+        formatEntry:
+          $ref: '#/components/schemas/ImportExportFormatEntry'
+        type:
+          type: string
+        mappedFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/MappedEntry'
+        fileName:
+          type: string
+    ImportExportFormatEntry:
+      type: object
+      properties:
+        dateFormat:
+          type: string
+        groupingSeparator:
+          type: string
+        decimalSeparator:
+          type: string
+    MappedEntry:
+      type: object
+      properties:
+        column:
+          type: integer
+          format: int32
+        key:
+          type: string
+        name:
+          type: string
+    UserAgendaBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          xml:
+            attribute: true
+        allocatedSeconds:
+          type: integer
+          format: int64
+          xml:
+            attribute: true
+        commitment:
+          type: number
+          format: double
+          xml:
+            attribute: true
+        description:
+          type: string
+          xml:
+            attribute: true
+        planItem:
+          $ref: '#/components/schemas/PlanItemBean'
+    UserFilterBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          xml:
+            attribute: true
+        name:
+          type: string
+          xml:
+            attribute: true
+        value:
+          type: string
+          xml:
+            attribute: true
+        creator:
+          type: string
+          xml:
+            attribute: true
+        isAdvanced:
+          type: boolean
+          xml:
+            attribute: true
+        userKeys:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        userNames:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        groupNames:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        roleIds:
+          uniqueItems: true
+          type: array
+          items:
+            type: integer
+            format: int32
+        roleNames:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        teamIds:
+          uniqueItems: true
+          type: array
+          items:
+            type: integer
+            format: int32
+        teamNames:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        minAvailability:
+          type: number
+          format: double
+          xml:
+            attribute: true
+    UserIndexSearchBeanV1:
+      type: object
+      properties:
+        userKeys:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        from:
+          type: string
+          xml:
+            attribute: true
+        to:
+          type: string
+          xml:
+            attribute: true
+        groupNames:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        roleNames:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        roleIds:
+          uniqueItems: true
+          type: array
+          items:
+            type: integer
+            format: int32
+        teamIds:
+          uniqueItems: true
+          type: array
+          items:
+            type: integer
+            format: int32
+        startAt:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        maxResults:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+    AffectedEntityBean:
+      type: object
+      properties:
+        descriptionKey:
+          type: string
+        numberOfOccurrences:
+          type: integer
+          format: int64
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic

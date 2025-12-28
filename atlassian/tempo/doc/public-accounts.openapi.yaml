@@ -1,0 +1,2309 @@
+openapi: 3.0.1
+info:
+  title: Tempo Accounts
+  description: Welcome to ACCOUNTS API Documentation. Use this REST API to programmatically
+    transfer data to or from ACCOUNTS in order to integrate with other business components.
+    REST being based on open standards, you are free to use any web development language
+    to access the API.
+  termsOfService: https://www.tempo.io/terms-of-use
+  version: '1.0'
+  x-logo:
+    url: https://cdn2.hubspot.net/hubfs/2814970/openApi/TEMPO_OpenAPI.png
+    altText: Tempo Software
+    href: https://www.tempo.io/server-api-documentation/
+externalDocs:
+  description: Contact Tempo Customer Support.
+  url: https://tempo-io.atlassian.net/servicedesk/customer/portal/6
+servers:
+- url: http://{JIRA_BASE_URL}/rest/tempo-accounts/1
+  variables:
+    JIRA_BASE_URL:
+      default: JIRA_BASE_URL
+security:
+- basicAuth: []
+paths:
+  /account:
+    get:
+      tags:
+      - Accounts
+      summary: Get all Accounts
+      operationId: getAccounts
+      parameters:
+      - name: skipArchived
+        in: query
+        description: Skip archived Accounts
+        schema:
+          type: string
+          default: 'true'
+      - name: expand
+        in: query
+        description: Include Account links
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+    post:
+      tags:
+      - Accounts
+      summary: Creates Account
+      description: Adding new Account requires the Manage Accounts Permission
+      operationId: createAccount
+      requestBody:
+        description: The new Account
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountInputBean'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /account/{accountId}:
+    get:
+      tags:
+      - Accounts
+      summary: Get Account by given id
+      description: The Caller must have the Browse Account permission for the Account
+      operationId: getAccountById
+      parameters:
+      - name: accountId
+        in: path
+        description: Id of Account
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+    put:
+      tags:
+      - Accounts
+      summary: Update Account by ID
+      operationId: updateAccount
+      parameters:
+      - name: accountId
+        in: path
+        description: the id of Account to update
+        required: true
+        schema:
+          type: integer
+          format: int32
+      requestBody:
+        description: Account name, Account key and lead are required, rest is optional
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountBean'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        4XX:
+          description: Bad Request
+      x-public: true
+    delete:
+      tags:
+      - Accounts
+      summary: Delete an Account by given id
+      operationId: deleteAccount
+      parameters:
+      - name: accountId
+        in: path
+        description: the id of the Account to be deleted
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        '200':
+          description: Successful Response
+        4XX:
+          description: Bad Request
+      x-public: true
+  /account/{accountId}/header:
+    get:
+      tags:
+      - Accounts
+      summary: Gets Account Header
+      description: ' Caller must have the Manage Account Permission for the Account'
+      operationId: getAccountHeader
+      parameters:
+      - name: accountId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeaderBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /account/search:
+    get:
+      tags:
+      - Accounts
+      summary: Get Accounts filtered by a query
+      operationId: getFilteredAccounts
+      parameters:
+      - name: tqlQuery
+        in: query
+        description: the query
+        schema:
+          type: string
+          default: status = OPEN
+        example: customer IS EMPTY OR customer = | status IN ("OPEN","CLOSED") AND
+          project =
+      - name: query
+        in: query
+        description: Text search
+        schema:
+          type: string
+        example: ABC
+      - name: limit
+        in: query
+        description: the total number of accounts to be returned
+        schema:
+          type: integer
+          format: int32
+          default: 100
+      - name: offset
+        in: query
+        description: the offset to start searching
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: orderBy
+        in: query
+        description: order by
+        schema:
+          type: string
+          example: customer ASC|DESC
+          enum:
+          - id ASC
+          - id DESC
+          - key ASC
+          - key DESC
+          - name ASC
+          - name DESC
+          - lead ASC
+          - lead DESC
+          - contact ADC
+          - contact DESC
+          - status ASC
+          - status DESC
+          - monthlyBudget ASC
+          - monthlyBudget DESC
+          - customer ASC
+          - customer DESC
+          - category ASC
+          - category DESC
+          - global ASC
+          - global DESC
+          - links ASC
+          - links DESC
+          default: name ASC
+      - name: includeLinks
+        in: query
+        description: include Account links
+        schema:
+          type: string
+          default: 'false'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountSearchBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /account/{accountId}/global/{global}:
+    put:
+      tags:
+      - Accounts
+      summary: Set an Account as a global Account
+      description: The Caller must have Manage Account Permission for the Account.
+        Making an account global, it is linked to all projects.
+      operationId: setGlobal
+      parameters:
+      - name: accountId
+        in: path
+        description: id of the Account
+        required: true
+        schema:
+          type: integer
+          format: int32
+      - name: global
+        in: path
+        description: is global
+        required: true
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /account/key/{accountKey}:
+    get:
+      tags:
+      - Accounts
+      summary: Get Account by Key
+      description: ' The Caller must have the Browse Account permission for the Account'
+      operationId: getAccountByKey
+      parameters:
+      - name: accountKey
+        in: path
+        description: The Account Key
+        required: true
+        schema:
+          type: string
+        example: ACC
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /account/lead:
+    get:
+      tags:
+      - Accounts
+      summary: Get Account for logged in Lead
+      description: The Caller must have the Browse Account permission for the Account
+      operationId: getAccountsByLead
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /account/customer/{customerId}:
+    get:
+      tags:
+      - Accounts
+      summary: Get un-archived Accounts by customer
+      description: The Caller must have the Browse Account permission for the Account
+      operationId: getAccountsByCustomer
+      parameters:
+      - name: customerId
+        in: path
+        description: The Customer Id
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /account/status/{status}:
+    get:
+      tags:
+      - Accounts
+      summary: Get Accounts by Status
+      description: The Caller must have the Browse Account permission for Account
+      operationId: getAccountsByStatus
+      parameters:
+      - name: status
+        in: path
+        description: The Acocunt Status
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /account/project/{projectId}:
+    get:
+      tags:
+      - Accounts
+      summary: Get Accounts by JIRA Project
+      description: This will return Accounts for which the Caller has Browse Account
+        Permission for
+      operationId: getAccountsByProject
+      parameters:
+      - name: projectId
+        in: path
+        description: The Jira Project Id
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /account/leads:
+    get:
+      tags:
+      - Accounts
+      summary: Get all Leads
+      operationId: getLeads
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TempoUser'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /account/{accountId}/link:
+    get:
+      tags:
+      - Accounts
+      summary: Get all Links linked to a specific Account by id
+      operationId: getLinks
+      parameters:
+      - name: accountId
+        in: path
+        description: id of the Account
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountLinkBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /category/type:
+    get:
+      tags:
+      - Categories
+      summary: Get all Category Types
+      operationId: getCategoryTypes
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoryType'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /budget/{id}:
+    get:
+      tags:
+      - Budget
+      operationId: getBudgetById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        default:
+          description: default response
+          content:
+            application/json: {}
+      deprecated: true
+      x-public: true
+    put:
+      tags:
+      - Budget
+      operationId: updateBudget
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BudgetBean'
+      responses:
+        default:
+          description: default response
+          content:
+            application/json: {}
+      deprecated: true
+      x-public: true
+  /budget:
+    post:
+      tags:
+      - Budget
+      operationId: createBudget
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BudgetBean'
+      responses:
+        default:
+          description: default response
+          content:
+            application/json: {}
+      deprecated: true
+      x-public: true
+  /budget/account/{accountId}:
+    get:
+      tags:
+      - Budget
+      operationId: getBudgetsByAccount
+      parameters:
+      - name: accountId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+      - name: valueType
+        in: query
+        schema:
+          type: string
+      responses:
+        default:
+          description: default response
+          content:
+            application/json: {}
+      deprecated: true
+      x-public: true
+  /config/property/{property}/{value}:
+    put:
+      tags:
+      - Config
+      summary: Set an Account property
+      description: Set whether an account property value should be cleared when an
+        issue is moved to another project
+      operationId: setAccountsProperty
+      parameters:
+      - name: property
+        in: path
+        description: The property name
+        required: true
+        schema:
+          type: string
+      - name: value
+        in: path
+        description: true to clear the value on move, false otherwise
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful Response
+        4XX:
+          description: Bad Request
+      x-public: true
+  /config/property/{propertyName}:
+    get:
+      tags:
+      - Config
+      summary: Get an Account property setting
+      description: Get an Account property setting, whether it should be cleared or
+        not when issues are moved between projects
+      operationId: getAccountsPropertyValue
+      parameters:
+      - name: propertyName
+        in: path
+        description: The name of the property
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful Response
+        4XX:
+          description: Bad Request
+      x-public: true
+  /config/fieldconfig/{fieldConfigId}/{value}:
+    put:
+      tags:
+      - Config
+      summary: Set whether the custom field is required or optional
+      operationId: setFieldConfigRequiredOrOptional
+      parameters:
+      - name: fieldConfigId
+        in: path
+        description: id of the custom field
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: value
+        in: path
+        description: 'string containing a boolean value if the field is optional or
+          required. Options: True -> required, false -> optional'
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful Response
+        4XX:
+          description: Bad Request
+      x-public: true
+  /config/customfield:
+    put:
+      tags:
+      - Config
+      summary: Rename the Account custom field.
+      operationId: changeFieldName
+      parameters:
+      - name: name
+        in: query
+        description: The new custom field name
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful Response
+        4XX:
+          description: Bad Request
+      x-public: true
+  /field:
+    get:
+      tags:
+      - Fields
+      summary: Get the account custom field
+      operationId: getAccountCF
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomFieldBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /field/setOnScreen:
+    get:
+      tags:
+      - Fields
+      summary: Checks if account custom field is set on any screen
+      operationId: getSetOnScreen
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: boolean
+        4XX:
+          description: Bad Request
+      x-public: true
+  /field/setOnScreen/project/{projectId}:
+    get:
+      tags:
+      - Fields
+      summary: Checks if account custom field is set on JIRA Project screen
+      operationId: getSetOnScreenByProject
+      parameters:
+      - name: projectId
+        in: path
+        description: The Jira Project Id
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: boolean
+        4XX:
+          description: Bad Request
+      x-public: true
+  /link/{linkId}:
+    get:
+      tags:
+      - Account Links
+      summary: Get a specific Account Link.
+      operationId: getLink
+      parameters:
+      - name: linkId
+        in: path
+        description: The id of the Link
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountLinkBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+    put:
+      tags:
+      - Account Links
+      summary: Updates a specific Account Link
+      operationId: updateLink
+      parameters:
+      - name: linkId
+        in: path
+        description: The id if the Link
+        required: true
+        schema:
+          type: integer
+          format: int32
+      requestBody:
+        description: The new Account Link
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountLinkBean'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountLinkBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+    delete:
+      tags:
+      - Account Links
+      summary: Deletes a specific Account Link.
+      operationId: deleteLink
+      parameters:
+      - name: linkId
+        in: path
+        description: The Accounts Link ID
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        '200':
+          description: Successful Response
+      x-public: true
+  /link/project/{projectId}:
+    get:
+      tags:
+      - Account Links
+      summary: Gets all links to a specific project
+      operationId: getLinksToProject
+      parameters:
+      - name: projectId
+        in: path
+        description: The Jira Project ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountLinkBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /link/project/{projectId}/default:
+    get:
+      tags:
+      - Account Links
+      summary: Gets the default link to a specific project
+      operationId: getDefaultLinkToProject
+      parameters:
+      - name: projectId
+        in: path
+        description: The id of the TemoProject
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountLinkBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /link/picker:
+    get:
+      tags:
+      - Account Links
+      summary: Get all Accounts with projects and links
+      operationId: getAccountLinkPicker
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountLinkBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /link:
+    post:
+      tags:
+      - Account Links
+      summary: Adds a link to an Account.
+      operationId: addLink
+      requestBody:
+        description: The new Account Link
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountLinkBean'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountLinkBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /permission/customer/{customerId}:
+    get:
+      tags:
+      - Permission
+      summary: Get all Customer Permissions
+      operationId: getAllCustomerPermissions
+      parameters:
+      - name: customerId
+        in: path
+        description: The Customer Id
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerPermission'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /permission/customer/{customerId}/{permissionKey}:
+    put:
+      tags:
+      - Permission
+      summary: Update Member-Customer permission
+      description: Grant permissions to users by associating them to the customer
+        on an individual user level or on a group level
+      operationId: updateMembersForPermission
+      parameters:
+      - name: customerId
+        in: path
+        description: Id of the Customer
+        required: true
+        schema:
+          type: integer
+          format: int32
+      - name: permissionKey
+        in: path
+        description: The Permission Key
+        required: true
+        schema:
+          type: string
+          enum:
+          - tempo.books.customer.browse.budget
+      requestBody:
+        description: The Customer Permission bean
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerPermissionBean'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerPermission'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /ratetable:
+    get:
+      tags:
+      - Rate Table
+      summary: Get Rate Tables by Scope type and scope id
+      operationId: getRateTables
+      parameters:
+      - name: scopeType
+        in: query
+        description: the type of scope for the rate table
+        schema:
+          type: string
+        example: ACCOUNT
+      - name: scopeId
+        in: query
+        description: the id of the scope (Currently the only supported scope id is
+          the id of the account)
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RateTableBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+    post:
+      tags:
+      - Rate Table
+      summary: Create a new Rate Table
+      operationId: createRateTable
+      requestBody:
+        description: The new Rate Table bean
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RateTableInputBean'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RateTableBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /ratetable/scope/{parentId}:
+    get:
+      tags:
+      - Rate Table
+      summary: Gets ids of scope object that are linked to a rate table
+      operationId: getScopeIdsByParentAndScopeType
+      parameters:
+      - name: parentId
+        in: path
+        description: Id of the RateTable Bean
+        required: true
+        schema:
+          type: integer
+          format: int32
+      - name: scopeType
+        in: query
+        description: 'the type of scope for the rate table (Currently, the only supported
+          scope type is: "ACCOUNT")'
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
+        4XX:
+          description: Bad Request
+      x-public: true
+  /ratetable/global:
+    get:
+      tags:
+      - Rate Table
+      summary: Gets all existing global rate tables
+      operationId: getGlobalRateTables
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RateTableBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /ratetable/{rateTableId}:
+    get:
+      tags:
+      - Rate Table
+      summary: Get Rate Table by id
+      operationId: getRateTable
+      parameters:
+      - name: rateTableId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateTableBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+    put:
+      tags:
+      - Rate Table
+      summary: Update Currency Code of Price Tables
+      operationId: updateRateTable
+      parameters:
+      - name: rateTableId
+        in: path
+        description: The Rate Table Id
+        required: true
+        schema:
+          type: integer
+          format: int32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RateTableInputBean'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RateTableBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+    delete:
+      tags:
+      - Rate Table
+      summary: Delete a rate table
+      operationId: deleteRateTable
+      parameters:
+      - name: rateTableId
+        in: path
+        description: the Rate Table Id
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: boolean
+        4XX:
+          description: Bad Request
+      x-public: true
+  /ratetable/rate:
+    get:
+      tags:
+      - Rate Table
+      summary: Get all existing Rates
+      operationId: getRates
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RateBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+    post:
+      tags:
+      - Rate Table
+      summary: Add a new Rate within Rate Table
+      operationId: createRate
+      requestBody:
+        description: The new Rate
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RateInputBean'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /ratetable/rate/{rateId}:
+    get:
+      tags:
+      - Rate Table
+      summary: Get rate by Id
+      operationId: getRate
+      parameters:
+      - name: rateId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RateBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+    put:
+      tags:
+      - Rate Table
+      summary: Updates a Rate
+      operationId: updateRate
+      parameters:
+      - name: rateId
+        in: path
+        description: The Id of the Rate
+        required: true
+        schema:
+          type: integer
+          format: int32
+      requestBody:
+        description: The new Rate
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RateInputBean'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateBean'
+        4XX:
+          description: Bad Request
+      x-public: true
+components:
+  schemas:
+    AccountBean:
+      required:
+      - key
+      - lead
+      - name
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          readOnly: true
+          xml:
+            attribute: true
+        key:
+          type: string
+          description: A unique key for the Account
+          example: ACC
+          xml:
+            attribute: true
+        name:
+          type: string
+          description: Account Name
+          example: Account
+          xml:
+            attribute: true
+        lead:
+          $ref: '#/components/schemas/PeopleBean'
+        leadAvatar:
+          type: string
+          format: uri
+          readOnly: true
+          xml:
+            attribute: true
+        contact:
+          $ref: '#/components/schemas/PeopleBean'
+        contactAvatar:
+          type: string
+          format: uri
+          readOnly: true
+          xml:
+            attribute: true
+        status:
+          type: string
+          xml:
+            attribute: true
+          enum:
+          - CLOSED
+          - OPEN
+          - ARCHIVED
+        monthlyBudget:
+          type: integer
+          format: int32
+          xml:
+            name: monthlybudget
+            attribute: true
+        customer:
+          $ref: '#/components/schemas/CustomerBean'
+        category:
+          $ref: '#/components/schemas/CategoryBean'
+        global:
+          type: boolean
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountLinkBean'
+      description: Account bean
+      xml:
+        name: account
+    AccountLinkBean:
+      required:
+      - accountId
+      - linkType
+      - scope
+      - scopeType
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          readOnly: true
+          xml:
+            attribute: true
+        scopeType:
+          type: string
+          description: Represents the type of scope the Account is linked to (Jira
+            Project)
+          xml:
+            attribute: true
+          enum:
+          - PROJECT
+        scope:
+          type: integer
+          description: Jira Project ID
+          format: int64
+          example: 12345
+          xml:
+            attribute: true
+        accountId:
+          type: integer
+          description: Account ID
+          format: int32
+          example: 12345
+          xml:
+            attribute: true
+        key:
+          type: string
+          description: Jira Project Key
+          example: PROJ
+          xml:
+            attribute: true
+        name:
+          type: string
+          description: Jira Project Name
+          example: Project
+          xml:
+            attribute: true
+        linkType:
+          type: string
+          description: Represents the type of link, that is whether the link was created
+            manually or whether it was created in a import
+          xml:
+            attribute: true
+          enum:
+          - IMPORTED
+          - MANUAL
+          default: MANUAL
+        defaultAccount:
+          type: boolean
+          description: Indicate if this is the default account
+          xml:
+            attribute: true
+          default: false
+      xml:
+        name: link
+    CategoryBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          readOnly: true
+          xml:
+            attribute: true
+        key:
+          type: string
+          xml:
+            attribute: true
+        name:
+          type: string
+          xml:
+            attribute: true
+        categoryType:
+          $ref: '#/components/schemas/CategoryTypeBean'
+        accountCount:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        archivedAccountCount:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+      xml:
+        name: category
+    CategoryTypeBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          readOnly: true
+          xml:
+            attribute: true
+        name:
+          type: string
+          xml:
+            attribute: true
+        color:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: categorytype
+    CustomerBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          readOnly: true
+          xml:
+            attribute: true
+        key:
+          type: string
+          xml:
+            attribute: true
+        name:
+          type: string
+          xml:
+            attribute: true
+        accountCount:
+          type: integer
+          format: int32
+          readOnly: true
+          xml:
+            attribute: true
+        archivedAccountCount:
+          type: integer
+          format: int32
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: customer
+    PeopleBean:
+      type: object
+      properties:
+        key:
+          type: string
+          readOnly: true
+          xml:
+            attribute: true
+        username:
+          type: string
+          xml:
+            attribute: true
+        name:
+          type: string
+          readOnly: true
+          xml:
+            attribute: true
+        active:
+          type: boolean
+          readOnly: true
+          xml:
+            attribute: true
+        emailAddress:
+          type: string
+          readOnly: true
+          xml:
+            attribute: true
+        displayName:
+          type: string
+          readOnly: true
+          xml:
+            attribute: true
+        avatarUrls:
+          type: object
+          additionalProperties:
+            type: string
+            format: uri
+            readOnly: true
+          readOnly: true
+        titleI18nKey:
+          type: string
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: people
+    AccountInputBean:
+      required:
+      - contact
+      - key
+      - lead
+      - name
+      - status
+      type: object
+      properties:
+        name:
+          type: string
+          example: Account
+          xml:
+            attribute: true
+        key:
+          type: string
+          example: ACC
+          xml:
+            attribute: true
+        lead:
+          $ref: '#/components/schemas/PeopleInputBean'
+        contact:
+          $ref: '#/components/schemas/ContactInputBean'
+        customer:
+          $ref: '#/components/schemas/CustomerInputBean'
+        status:
+          type: string
+          description: Account Status
+          xml:
+            attribute: true
+          enum:
+          - CLOSED
+          - OPEN
+          - ARCHIVED
+    ContactInputBean:
+      type: object
+      properties:
+        username:
+          type: string
+          example: joeSchmoe
+          xml:
+            attribute: true
+        key:
+          type: string
+          example: joeSchmoe
+          xml:
+            attribute: true
+      description: Customer Contact | Can be set to empty {}
+    CustomerInputBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          example: 12345
+          xml:
+            attribute: true
+        key:
+          type: string
+          example: CUST
+          xml:
+            attribute: true
+        name:
+          type: string
+          example: Customer
+          xml:
+            attribute: true
+      description: Customer Information | Can be omitted
+    PeopleInputBean:
+      type: object
+      properties:
+        username:
+          type: string
+          example: johnDoe
+          xml:
+            attribute: true
+        key:
+          type: string
+          example: johnDoe
+          xml:
+            attribute: true
+      description: Account Lead Information
+    HeaderBean:
+      type: object
+      properties:
+        account:
+          $ref: '#/components/schemas/AccountBean'
+        customer:
+          $ref: '#/components/schemas/CustomerBean'
+      xml:
+        name: header
+    Account:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        key:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          description: The Account Status
+          enum:
+          - CLOSED
+          - OPEN
+          - ARCHIVED
+        monthlyBudget:
+          type: integer
+          format: int32
+        global:
+          type: boolean
+        customer:
+          $ref: '#/components/schemas/Customer'
+        tempoContact:
+          $ref: '#/components/schemas/TempoUser'
+        capitalized:
+          type: boolean
+        billable:
+          type: boolean
+        tempoLead:
+          $ref: '#/components/schemas/TempoUser'
+        category:
+          $ref: '#/components/schemas/Category'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountLink'
+    AccountLink:
+      type: object
+      properties:
+        scopeType:
+          type: string
+          enum:
+          - PROJECT
+        scope:
+          type: integer
+          format: int64
+        accountId:
+          type: integer
+          format: int32
+        linkType:
+          type: string
+          enum:
+          - IMPORTED
+          - MANUAL
+        defaultAccount:
+          type: boolean
+        id:
+          type: integer
+          format: int32
+    Category:
+      required:
+      - key
+      - name
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          readOnly: true
+        name:
+          type: string
+          description: Account Attribute Name
+          example: Customer
+        key:
+          type: string
+          description: Account Attribute Key
+          example: CUST
+        categoryType:
+          $ref: '#/components/schemas/CategoryType'
+    CategoryType:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          readOnly: true
+        name:
+          type: string
+        color:
+          type: string
+    Customer:
+      required:
+      - key
+      - name
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          readOnly: true
+        name:
+          type: string
+          description: Account Attribute Name
+          example: Customer
+        key:
+          type: string
+          description: Account Attribute Key
+          example: CUST
+    I18nResources:
+      type: object
+      properties:
+        locale:
+          type: object
+          properties:
+            language:
+              type: string
+            script:
+              type: string
+            country:
+              type: string
+            variant:
+              type: string
+            extensionKeys:
+              uniqueItems: true
+              type: array
+              items:
+                type: string
+            unicodeLocaleAttributes:
+              uniqueItems: true
+              type: array
+              items:
+                type: string
+            unicodeLocaleKeys:
+              uniqueItems: true
+              type: array
+              items:
+                type: string
+            iso3Language:
+              type: string
+            iso3Country:
+              type: string
+            displayLanguage:
+              type: string
+            displayScript:
+              type: string
+            displayCountry:
+              type: string
+            displayVariant:
+              type: string
+            displayName:
+              type: string
+    TempoUser:
+      type: object
+      properties:
+        tenant:
+          $ref: '#/components/schemas/Tenant'
+        i18nResources:
+          $ref: '#/components/schemas/I18nResources'
+        locale:
+          type: object
+          properties:
+            language:
+              type: string
+            script:
+              type: string
+            country:
+              type: string
+            variant:
+              type: string
+            extensionKeys:
+              uniqueItems: true
+              type: array
+              items:
+                type: string
+            unicodeLocaleAttributes:
+              uniqueItems: true
+              type: array
+              items:
+                type: string
+            unicodeLocaleKeys:
+              uniqueItems: true
+              type: array
+              items:
+                type: string
+            iso3Language:
+              type: string
+            iso3Country:
+              type: string
+            displayLanguage:
+              type: string
+            displayScript:
+              type: string
+            displayCountry:
+              type: string
+            displayVariant:
+              type: string
+            displayName:
+              type: string
+        timeZone:
+          type: object
+          properties:
+            dstsavings:
+              type: integer
+              format: int32
+            rawOffset:
+              type: integer
+              format: int32
+            id:
+              type: string
+            displayName:
+              type: string
+        active:
+          type: boolean
+        username:
+          type: string
+        email:
+          type: string
+        key:
+          type: string
+        displayName:
+          type: string
+    Tenant:
+      type: object
+      properties:
+        origin:
+          type: string
+          enum:
+          - TEMPO
+          - JIRA
+        key:
+          type: string
+    AccountSearchBean:
+      type: object
+      properties:
+        pageSize:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        currentPage:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        totalRecords:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        totalPages:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        tqlQuery:
+          type: string
+          xml:
+            attribute: true
+        query:
+          type: string
+          xml:
+            attribute: true
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountBean'
+      xml:
+        name: accountsearch
+    AccountFilterSearchBean:
+      type: object
+      properties:
+        tqlQuery:
+          type: string
+          description: the query
+          example: customer IS EMPTY OR customer = | status IN ("OPEN","CLOSED") AND
+            project =
+          xml:
+            attribute: true
+          default: status = OPEN
+        query:
+          type: string
+          description: Text search
+          example: ABC
+          xml:
+            attribute: true
+        limit:
+          type: integer
+          description: the total number of accounts to be returned
+          format: int32
+          xml:
+            attribute: true
+          default: 100
+        offset:
+          type: integer
+          description: the offset to start searching
+          format: int32
+          xml:
+            attribute: true
+          default: 0
+        orderBy:
+          type: string
+          description: order by
+          example: customer ASC|DESC
+          xml:
+            attribute: true
+          enum:
+          - id ASC
+          - id DESC
+          - key ASC
+          - key DESC
+          - name ASC
+          - name DESC
+          - lead ASC
+          - lead DESC
+          - contact ADC
+          - contact DESC
+          - status ASC
+          - status DESC
+          - monthlyBudget ASC
+          - monthlyBudget DESC
+          - customer ASC
+          - customer DESC
+          - category ASC
+          - category DESC
+          - global ASC
+          - global DESC
+          - links ASC
+          - links DESC
+          default: name ASC
+        includeLinks:
+          type: string
+          description: include Account links
+          example: 'false'
+          xml:
+            attribute: true
+          enum:
+          - 'true'
+          - 'false'
+          default: 'false'
+    AccountPickerBean:
+      type: object
+      properties:
+        key:
+          type: string
+          xml:
+            attribute: true
+        name:
+          type: string
+          xml:
+            attribute: true
+    Attribute:
+      required:
+      - key
+      - name
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          readOnly: true
+        name:
+          type: string
+          description: Account Attribute Name
+          example: Customer
+        key:
+          type: string
+          description: Account Attribute Key
+          example: CUST
+    BudgetBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        value:
+          type: number
+          format: double
+          xml:
+            attribute: true
+        valueType:
+          type: string
+          xml:
+            attribute: true
+          enum:
+          - MONEY
+        scopeType:
+          type: string
+          xml:
+            attribute: true
+          enum:
+          - ACCOUNT
+        scopeId:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+    CustomFieldBean:
+      type: object
+      properties:
+        id:
+          type: string
+          xml:
+            attribute: true
+        name:
+          type: string
+          xml:
+            attribute: true
+        custom:
+          type: boolean
+          xml:
+            attribute: true
+        orderable:
+          type: boolean
+          xml:
+            attribute: true
+        navigable:
+          type: boolean
+          xml:
+            attribute: true
+        searchable:
+          type: boolean
+          xml:
+            attribute: true
+        schema:
+          $ref: '#/components/schemas/JsonTypeBean'
+    JsonTypeBean:
+      type: object
+    ImportFromServiceBean:
+      type: object
+      properties:
+        importURL:
+          type: string
+    CustomerPermission:
+      type: object
+      properties:
+        customerId:
+          type: integer
+          format: int32
+        key:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        weight:
+          type: integer
+          format: int32
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/TempoGroup'
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/TempoUser'
+    TempoGroup:
+      type: object
+      properties:
+        name:
+          type: string
+    CustomerPermissionBean:
+      required:
+      - groups
+      - userKeys
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+          xml:
+            attribute: true
+        customerId:
+          type: integer
+          format: int32
+          readOnly: true
+          xml:
+            attribute: true
+        name:
+          type: string
+          readOnly: true
+          xml:
+            attribute: true
+        description:
+          type: string
+          readOnly: true
+          xml:
+            attribute: true
+        weight:
+          type: integer
+          format: int32
+          readOnly: true
+          xml:
+            attribute: true
+        groups:
+          type: array
+          description: List of Groups
+          example:
+          - jira-administrators
+          - devs
+          items:
+            type: string
+            description: List of Groups
+            example: '["jira-administrators","devs"]'
+        users:
+          type: array
+          readOnly: true
+          items:
+            $ref: '#/components/schemas/UserBean'
+        userNames:
+          type: array
+          readOnly: true
+          items:
+            type: string
+            readOnly: true
+        userKeys:
+          type: array
+          description: List of User Keys
+          example:
+          - johnDoe
+          - joeSchmoe
+          items:
+            type: string
+            description: List of User Keys
+            example: '["johnDoe","joeSchmoe"]'
+      xml:
+        name: customerpermission
+    UserBean:
+      type: object
+      properties:
+        name:
+          type: string
+          xml:
+            attribute: true
+        displayName:
+          type: string
+          xml:
+            name: displayname
+            attribute: true
+        avatar:
+          type: object
+          additionalProperties:
+            type: string
+            format: uri
+        jiraUser:
+          type: boolean
+          xml:
+            attribute: true
+      readOnly: true
+    LinkBean:
+      type: object
+      properties:
+        type:
+          type: string
+          xml:
+            attribute: true
+        id:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+      xml:
+        name: link
+    RateBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        rateTable:
+          $ref: '#/components/schemas/RateTableBean'
+        amount:
+          type: number
+          format: double
+          xml:
+            attribute: true
+        link:
+          $ref: '#/components/schemas/LinkBean'
+      xml:
+        name: rate
+    RateTableBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          readOnly: true
+          xml:
+            attribute: true
+        effectiveDate:
+          type: string
+          description: Effective Date
+          example: yyyy-MM-dd
+          xml:
+            attribute: true
+        currencyCode:
+          type: string
+          description: Currency Code
+          example: USD
+          xml:
+            attribute: true
+        parent:
+          $ref: '#/components/schemas/RateTableBean'
+        scope:
+          $ref: '#/components/schemas/ScopeBean'
+        discount:
+          type: number
+          description: Discount percentage
+          format: double
+          example: 15
+          xml:
+            attribute: true
+        rates:
+          type: array
+          items:
+            $ref: '#/components/schemas/RateBean'
+        name:
+          type: string
+          xml:
+            attribute: true
+        defaultTable:
+          type: boolean
+          xml:
+            attribute: true
+      xml:
+        name: rate-table
+    ScopeBean:
+      type: object
+      properties:
+        scopeId:
+          type: number
+          xml:
+            attribute: true
+        scopeType:
+          type: string
+          xml:
+            attribute: true
+    RateTableInputBean:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Rate Table Name
+          xml:
+            attribute: true
+        currencyCode:
+          type: string
+          example: USD
+          xml:
+            attribute: true
+    ScopedRateTableBean:
+      type: object
+      properties:
+        scopeId:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        parentId:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        parentName:
+          type: string
+          xml:
+            attribute: true
+    ScopedRateTablesBean:
+      type: object
+      properties:
+        defaultId:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        defaultName:
+          type: string
+          xml:
+            attribute: true
+        scoped:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScopedRateTableBean'
+      xml:
+        name: scopedNames
+    LinkInputBean:
+      type: object
+      properties:
+        type:
+          type: string
+          example: TEAM_ROLE
+          xml:
+            attribute: true
+          enum:
+          - DEFAULT_RATE
+          - TEAM_ROLE
+        id:
+          type: integer
+          description: This is omitted if changing the DEFAULT_RATE
+          format: int32
+          example: 12345
+          xml:
+            attribute: true
+    RateInputBean:
+      type: object
+      properties:
+        amount:
+          type: number
+          format: double
+          example: 40.0
+          xml:
+            attribute: true
+        link:
+          $ref: '#/components/schemas/LinkInputBean'
+        rateTable:
+          $ref: '#/components/schemas/RateTableLinkBean'
+    RateTableLinkBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          example: 12345
+          xml:
+            attribute: true
+    AffectedEntityBean:
+      type: object
+      properties:
+        descriptionKey:
+          type: string
+        numberOfOccurrences:
+          type: integer
+          format: int64
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic

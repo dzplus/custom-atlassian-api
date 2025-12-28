@@ -1,0 +1,2834 @@
+openapi: 3.0.1
+info:
+  title: Tempo Core
+  description: Welcome to Tempo Core API Documentation. Use this REST API to programmatically
+    transfer data to or from Tempo Core in order to integrate with other business
+    components. REST being based on open standards, you are free to use any web development
+    language to access the API.
+  termsOfService: https://www.tempo.io/terms-of-use
+  version: '1.0'
+  x-logo:
+    url: https://cdn2.hubspot.net/hubfs/2814970/openApi/TEMPO_OpenAPI.png
+    altText: Tempo Software
+    href: https://www.tempo.io/server-api-documentation/
+externalDocs:
+  description: Contact Tempo Customer Support.
+  url: https://tempo-io.atlassian.net/servicedesk/customer/portal/6
+servers:
+- url: http://{JIRA_BASE_URL}/rest/tempo-core/1
+  variables:
+    JIRA_BASE_URL:
+      default: JIRA_BASE_URL
+security:
+- basicAuth: []
+paths:
+  /expense/category:
+    get:
+      tags:
+      - Expense
+      summary: Get expense categories
+      description: Get expense categories, filtered by a query.
+      operationId: getExpenseCategories
+      parameters:
+      - name: query
+        in: query
+        description: the text to filter by
+        schema:
+          type: string
+        example: To Do
+      - name: includeExpenses
+        in: query
+        description: determines whether expenses are returned with the expense categories
+        schema:
+          type: string
+          default: 'false'
+        example: false
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExpenseCategory'
+        4XX:
+          description: Bad Request
+      x-public: true
+    post:
+      tags:
+      - Expense
+      summary: Create a new expense category
+      description: Create a new expense category.
+      operationId: createExpenseCategory
+      requestBody:
+        description: Create a new expense category
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseCategory'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseCategory'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /expense/category/{id}:
+    put:
+      tags:
+      - Expense
+      summary: Update expense category by ID
+      description: Update expense category by ID.
+      operationId: updateExpenseCategory
+      parameters:
+      - name: id
+        in: path
+        description: expense category ID
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 12345
+      requestBody:
+        description: Update an existing expense category
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseCategory'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseCategory'
+        4XX:
+          description: Bad Request
+      x-public: true
+    delete:
+      tags:
+      - Expense
+      summary: Delete an expense category by ID
+      description: Delete an expense category by ID.
+      operationId: deleteExpenseCategory
+      parameters:
+      - name: id
+        in: path
+        description: expense category ID
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 12345
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: boolean
+              example: true
+        4XX:
+          description: Bad Request
+      x-public: true
+  /expense:
+    get:
+      tags:
+      - Expense
+      summary: Get expenses for a given scope between two dates
+      description: Get expenses for a given scope between two dates or all existing
+        expenses if no parameters are given.
+      operationId: getExpenses
+      parameters:
+      - name: scopeType
+        in: query
+        description: the type of scope
+        schema:
+          type: string
+          enum:
+          - ISSUE
+      - name: scopeId
+        in: query
+        description: the id of the scope
+        schema:
+          type: string
+        example: 12345
+      - name: dateFrom
+        in: query
+        description: the from date
+        schema:
+          type: string
+        example: yyyy-MM-dd
+      - name: dateTo
+        in: query
+        description: the to date
+        schema:
+          type: string
+        example: yyyy-MM-dd
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Expense'
+        4XX:
+          description: Bad Request
+      x-public: true
+    post:
+      tags:
+      - Expense
+      summary: Creates a new expense
+      description: Creates a new expense.
+      operationId: createExpense
+      requestBody:
+        description: Create a new expense
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseInputBean'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /expense/{id}:
+    get:
+      tags:
+      - Expense
+      summary: Get expense by ID
+      description: Get expense by ID.
+      operationId: getExpense
+      parameters:
+      - name: id
+        in: path
+        description: expense ID
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 12345
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+        4XX:
+          description: Bad Request
+      x-public: true
+    put:
+      tags:
+      - Expense
+      summary: Update expense by ID
+      description: Update expense by ID.
+      operationId: updateExpense
+      parameters:
+      - name: id
+        in: path
+        description: expense ID
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 12345
+      requestBody:
+        description: Update an existing expense
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseInputBean'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+        4XX:
+          description: Bad Request
+      x-public: true
+    delete:
+      tags:
+      - Expense
+      summary: Delete expense by ID
+      description: Delete expense by ID.
+      operationId: deleteExpense
+      parameters:
+      - name: id
+        in: path
+        description: expense ID
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 12345
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: boolean
+              example: true
+        4XX:
+          description: Bad Request
+      x-public: true
+  /user/schedule:
+    get:
+      tags:
+      - User Schedule V1
+      summary: Get userSchedule for user on specific dates
+      description: Get userSchedule for user on specific dates, defaults to loggedInUser
+        and today if query parameters are omitted.
+      operationId: getUserSchedule
+      parameters:
+      - name: user
+        in: query
+        description: Username
+        schema:
+          type: string
+        example: johnDoe
+      - name: from
+        in: query
+        description: Date From
+        schema:
+          type: string
+        example: yyyy-MM-dd
+      - name: to
+        in: query
+        description: Date To
+        schema:
+          type: string
+        example: yyyy-MM-dd
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DayScheduleBeanWrapper'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /work-attribute:
+    get:
+      tags:
+      - Work Attribute
+      summary: Gets work attributes, optionally filtered by type.
+      description: Optionally filtered by key or type. If no parameters are provided,
+        all work attributes are returned.
+      operationId: getWorkAttributes
+      parameters:
+      - name: key
+        in: query
+        description: the unique key of the work attribute to search by
+        schema:
+          type: string
+        example: _abc_
+      - name: type
+        in: query
+        description: the name of the type to filter by
+        schema:
+          type: string
+          enum:
+          - ACCOUNT
+          - BILLABLE_SECONDS
+          - CHECKBOX
+          - DYNAMIC_DROPDOWN
+          - INPUT_FIELD
+          - INPUT_NUMERIC
+          - STATIC_LIST
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkAttribute'
+        4XX:
+          description: Bad Request
+      x-public: true
+    post:
+      tags:
+      - Work Attribute
+      summary: Create a new work attribute.
+      description: Create a new work attribute. This operation requires Tempo Administrator
+        permission.
+      operationId: createWorkAttribute
+      requestBody:
+        description: Create a new work attribute
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkAttribute'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkAttribute'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /work-attribute/{id}:
+    get:
+      tags:
+      - Work Attribute
+      summary: Gets a specific work attribute
+      description: Gets a specific work attribute.
+      operationId: getWorkAttribute
+      parameters:
+      - name: id
+        in: path
+        description: Work Attribute ID
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 12345
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkAttribute'
+        4XX:
+          description: Bad Request
+      x-public: true
+    put:
+      tags:
+      - Work Attribute
+      summary: Update an existing work attribute
+      description: Update an existing work attribute. This operation requires Tempo
+        Administrator permission.
+      operationId: updateWorkAttribute
+      parameters:
+      - name: id
+        in: path
+        description: Work Attribute ID
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 12345
+      requestBody:
+        description: Work Attribute Bean
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkAttribute'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkAttribute'
+        4XX:
+          description: Bad Request
+      x-public: true
+    delete:
+      tags:
+      - Work Attribute
+      summary: Delete an existing work attribute
+      description: Delete an existing work attribute. This operation requires Tempo
+        Administrator permission.
+      operationId: deleteWorkAttribute
+      parameters:
+      - name: id
+        in: path
+        description: Work Attribute ID
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 12345
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: boolean
+              example: true
+        4XX:
+          description: Bad Request
+      x-public: true
+  /work-attribute/type:
+    get:
+      tags:
+      - Work Attribute
+      summary: Get all available (and non-system) work attribute types
+      description: Gets all available (and non-system) work attribute types.
+      operationId: getWorkAttributeTypes
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkAttributeType'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /work-attribute/{id}/static-list-value:
+    get:
+      tags:
+      - Work Attribute
+      summary: Get all static list values for a specific work attribute
+      description: Gets all static list values for a specific work attribute. If no
+        work attribute id is provided, the service returns an error.
+      operationId: getStaticListValuesByWorkAttribute
+      parameters:
+      - name: id
+        in: path
+        description: Work Attribute ID
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 12345
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StaticListValue'
+        4XX:
+          description: Bad Request
+      x-public: true
+    post:
+      tags:
+      - Work Attribute
+      summary: Creates a static list value for a work attribute
+      description: Create a new static list value for a work attribute. This operation
+        requires Tempo Administrator permission
+      operationId: createStaticListValueForWorkAttribute
+      parameters:
+      - name: id
+        in: path
+        description: Work Attribute ID
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 12345
+      requestBody:
+        description: Static List Value Bean
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaticListValue'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaticListValue'
+        4XX:
+          description: Bad Request
+      x-public: true
+  /work-attribute/{id}/static-list-value/{staticListValueId}:
+    put:
+      tags:
+      - Work Attribute
+      summary: Update an existing static list value for a work attribute
+      description: Update an existing static list value. This operation requires Tempo
+        Administrator permission.
+      operationId: updateStaticListValue
+      parameters:
+      - name: id
+        in: path
+        description: Work Attribute ID
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 12345
+      - name: staticListValueId
+        in: path
+        description: Static List Value ID
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 12345
+      requestBody:
+        description: Static List Value Bean
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaticListValue'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaticListValue'
+        4XX:
+          description: Bad Request
+      x-public: true
+components:
+  schemas:
+    IssueActivityActionsBean:
+      type: object
+      properties:
+        canEdit:
+          type: boolean
+          writeOnly: true
+        canDelete:
+          type: boolean
+          writeOnly: true
+      xml:
+        name: actions
+    IssueActivityBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        value:
+          type: number
+          xml:
+            attribute: true
+        description:
+          type: string
+          xml:
+            attribute: true
+        type:
+          type: string
+          xml:
+            attribute: true
+        assignee:
+          type: string
+          xml:
+            attribute: true
+        dateTime:
+          type: string
+          xml:
+            attribute: true
+        key:
+          type: string
+          xml:
+            attribute: true
+        anonymous:
+          type: boolean
+          xml:
+            attribute: true
+        actions:
+          $ref: '#/components/schemas/IssueActivityActionsBean'
+      xml:
+        name: activity
+    IssueActivitySummaryBean:
+      type: object
+      properties:
+        activities:
+          type: array
+          items:
+            $ref: '#/components/schemas/IssueActivityBean'
+        typeCounts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int32
+        totalCount:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        pageNumber:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        totalPageCount:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+      xml:
+        name: activity-summary
+    ActivitySourceBean:
+      type: object
+      properties:
+        worklogId:
+          type: integer
+          format: int64
+        sourceType:
+          type: string
+        sourceId:
+          type: string
+        sourceDate:
+          type: string
+    ActivitySourceSearchParams:
+      type: object
+      properties:
+        worklogIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+        sourceTypes:
+          type: array
+          items:
+            type: string
+    AnalyticsBean:
+      type: object
+      properties:
+        event:
+          type: string
+          xml:
+            attribute: true
+        type:
+          type: string
+          xml:
+            attribute: true
+        properties:
+          type: object
+          additionalProperties:
+            type: object
+        traits:
+          type: object
+          additionalProperties:
+            type: object
+        context:
+          type: object
+          additionalProperties:
+            type: object
+        analyticsBeanValid:
+          type: boolean
+        typeValid:
+          type: boolean
+        typeScreen:
+          type: boolean
+        eventValid:
+          type: boolean
+        typeTrack:
+          type: boolean
+    ExpenseCategory:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Required when creating expense, not required when creating
+            expense category
+          format: int32
+          readOnly: true
+          example: 12345
+          xml:
+            attribute: true
+        name:
+          type: string
+          description: Expense Category Name
+          example: Category Name
+          xml:
+            attribute: true
+      xml:
+        name: expense-category
+    Expense:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Expense ID
+          format: int32
+          readOnly: true
+          example: 12345
+          xml:
+            attribute: true
+        description:
+          type: string
+          description: Expense Description
+          example: This is a description.
+          xml:
+            attribute: true
+        date:
+          type: string
+          description: Formatted Expense Date
+          example: yyyy-MM-dd
+          xml:
+            attribute: true
+        created_by:
+          $ref: '#/components/schemas/created_by'
+        scopeType:
+          type: string
+          readOnly: true
+          enum:
+          - ISSUE
+        scopeId:
+          type: integer
+          description: Scope ID
+          format: int64
+          readOnly: true
+          example: 12345
+        scope:
+          $ref: '#/components/schemas/ScopeBean'
+        amount:
+          type: number
+          description: Amount
+          format: double
+          example: 10.0
+          xml:
+            attribute: true
+        expenseCategory:
+          $ref: '#/components/schemas/ExpenseCategory'
+      xml:
+        name: expense
+    ScopeBean:
+      type: object
+      properties:
+        scopeId:
+          type: number
+          description: Scope ID
+          example: 12345
+          xml:
+            attribute: true
+        scopeType:
+          type: string
+          description: Scope Type
+          xml:
+            attribute: true
+          enum:
+          - ISSUE
+      description: Scope of the expense
+    created_by:
+      required:
+      - displayName
+      - username
+      type: object
+      properties:
+        username:
+          type: string
+          description: Username
+          example: johnDoe
+          xml:
+            attribute: true
+        displayName:
+          type: string
+          description: Display Name
+          readOnly: true
+          example: John Doe
+          xml:
+            attribute: true
+        key:
+          type: string
+          description: User Key
+          example: johnDoe
+          xml:
+            attribute: true
+      description: Formatted Created By
+    CreatedByInputBean:
+      type: object
+      properties:
+        username:
+          type: string
+          example: johnDoe
+          xml:
+            attribute: true
+        key:
+          type: string
+          example: johnDoe
+          xml:
+            attribute: true
+      description: User who created expense
+    ExpenseCategoryInputBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          example: 12345
+          xml:
+            attribute: true
+      description: Information on Expense Category
+    ExpenseInputBean:
+      type: object
+      properties:
+        description:
+          type: string
+          example: This is a description.
+          xml:
+            attribute: true
+        date:
+          type: string
+          example: yyyy-MM-dd
+          xml:
+            attribute: true
+        scope:
+          $ref: '#/components/schemas/ScopeBean'
+        amount:
+          type: number
+          format: double
+          example: 10.0
+          xml:
+            attribute: true
+        expenseCategory:
+          $ref: '#/components/schemas/ExpenseCategoryInputBean'
+        createdBy:
+          $ref: '#/components/schemas/CreatedByInputBean'
+    FilterBean:
+      type: object
+      properties:
+        id:
+          type: string
+          xml:
+            attribute: true
+        name:
+          type: string
+          xml:
+            attribute: true
+        jql:
+          type: string
+          xml:
+            attribute: true
+        favourite:
+          type: boolean
+          xml:
+            attribute: true
+    Configuration:
+      type: object
+      properties:
+        value:
+          type: object
+        key:
+          type: string
+        public:
+          type: boolean
+    HolidaySchemeBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        name:
+          type: string
+          xml:
+            attribute: true
+        description:
+          type: string
+          xml:
+            attribute: true
+        defaultScheme:
+          type: boolean
+          xml:
+            attribute: true
+        memberCount:
+          type: integer
+          format: int32
+      xml:
+        name: holidayscheme
+    HolidayBean:
+      type: object
+      properties:
+        name:
+          type: string
+          example: National Holiday
+          xml:
+            attribute: true
+        description:
+          type: string
+          example: This is a national holiday of this country.
+          xml:
+            attribute: true
+        durationSeconds:
+          type: integer
+          format: int64
+          example: 3600
+          xml:
+            attribute: true
+      xml:
+        name: holiday
+    UserBean:
+      required:
+      - displayName
+      - username
+      type: object
+      properties:
+        username:
+          type: string
+          description: Username
+          example: johnDoe
+          xml:
+            attribute: true
+        displayName:
+          type: string
+          description: Display Name
+          readOnly: true
+          example: John Doe
+          xml:
+            attribute: true
+        key:
+          type: string
+          description: User Key
+          example: johnDoe
+          xml:
+            attribute: true
+    HolidaySchemeV2Bean:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        name:
+          type: string
+          xml:
+            attribute: true
+        description:
+          type: string
+          xml:
+            attribute: true
+        defaultScheme:
+          type: boolean
+          xml:
+            attribute: true
+        memberCount:
+          type: integer
+          format: int32
+      xml:
+        name: holidayscheme
+    HolidayV2Bean:
+      type: object
+      properties:
+        name:
+          type: string
+          xml:
+            attribute: true
+        description:
+          type: string
+          xml:
+            attribute: true
+        durationSeconds:
+          type: integer
+          format: int64
+          xml:
+            attribute: true
+      xml:
+        name: holiday
+    HolidayMoveMembersBean:
+      type: object
+      properties:
+        schemeId:
+          type: integer
+          description: Holiday scheme Id
+          format: int32
+          example: 12345
+          xml:
+            attribute: true
+        userKeys:
+          type: array
+          description: User keys of the members
+          example: johndoe123
+          items:
+            type: string
+            description: User keys of the members
+            example: johndoe123
+    IssueBean:
+      type: object
+      properties:
+        isInternal:
+          type: boolean
+          xml:
+            attribute: true
+      xml:
+        name: issue
+    ApplicationProperties:
+      type: object
+      properties:
+        defaultKeys:
+          type: array
+          items:
+            type: string
+        mailEncoding:
+          type: string
+        defaultLocale:
+          type: object
+          properties:
+            language:
+              type: string
+            script:
+              type: string
+            country:
+              type: string
+            variant:
+              type: string
+            extensionKeys:
+              uniqueItems: true
+              type: array
+              items:
+                type: string
+            unicodeLocaleAttributes:
+              uniqueItems: true
+              type: array
+              items:
+                type: string
+            unicodeLocaleKeys:
+              uniqueItems: true
+              type: array
+              items:
+                type: string
+            iso3Language:
+              type: string
+            iso3Country:
+              type: string
+            displayLanguage:
+              type: string
+            displayScript:
+              type: string
+            displayCountry:
+              type: string
+            displayVariant:
+              type: string
+            displayName:
+              type: string
+        contentType:
+          type: string
+        encoding:
+          type: string
+        keys:
+          type: array
+          items:
+            type: string
+    PermissionBean:
+      type: object
+      properties:
+        name:
+          type: string
+          xml:
+            attribute: true
+        description:
+          type: string
+          xml:
+            attribute: true
+        weight:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        groupNames:
+          type: array
+          items:
+            type: string
+        key:
+          type: string
+      xml:
+        name: permission
+    PluginBean:
+      type: object
+      properties:
+        pluginKey:
+          type: string
+          xml:
+            attribute: true
+        name:
+          type: string
+          xml:
+            attribute: true
+        version:
+          type: string
+          xml:
+            attribute: true
+        documentationUrl:
+          type: string
+          xml:
+            attribute: true
+        dateInstalled:
+          type: string
+          xml:
+            attribute: true
+        licensed:
+          type: boolean
+          xml:
+            attribute: true
+    DataCenterBean:
+      type: object
+    PluginInfoBean:
+      type: object
+      properties:
+        plugins:
+          type: array
+          items:
+            $ref: '#/components/schemas/PluginBean'
+        jiraVersion:
+          type: string
+          xml:
+            name: JIRAVersion
+            attribute: true
+    ProjectBean:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          xml:
+            attribute: true
+    ProjectConfigBean:
+      type: object
+      properties:
+        projectColor:
+          type: string
+          xml:
+            attribute: true
+        project:
+          $ref: '#/components/schemas/ProjectBean'
+    ApplicationUser:
+      type: object
+      properties:
+        emailAddress:
+          type: string
+        directoryId:
+          type: integer
+          format: int64
+        directoryUser:
+          $ref: '#/components/schemas/User'
+        active:
+          type: boolean
+        username:
+          type: string
+        name:
+          type: string
+        key:
+          type: string
+        displayName:
+          type: string
+        id:
+          type: integer
+          format: int64
+    Attr:
+      type: object
+      properties:
+        id:
+          type: boolean
+        ownerElement:
+          $ref: '#/components/schemas/Element'
+        specified:
+          type: boolean
+        schemaTypeInfo:
+          $ref: '#/components/schemas/TypeInfo'
+        name:
+          type: string
+        value:
+          type: string
+        childNodes:
+          $ref: '#/components/schemas/NodeList'
+        nodeName:
+          type: string
+        textContent:
+          type: string
+        nodeValue:
+          type: string
+        parentNode:
+          $ref: '#/components/schemas/Node'
+        firstChild:
+          $ref: '#/components/schemas/Node'
+        lastChild:
+          $ref: '#/components/schemas/Node'
+        previousSibling:
+          $ref: '#/components/schemas/Node'
+        nextSibling:
+          $ref: '#/components/schemas/Node'
+        ownerDocument:
+          $ref: '#/components/schemas/Document'
+        namespaceURI:
+          type: string
+        localName:
+          type: string
+        prefix:
+          type: string
+        nodeType:
+          type: integer
+          format: int32
+        baseURI:
+          type: string
+        attributes:
+          $ref: '#/components/schemas/NamedNodeMap'
+    Avatar:
+      type: object
+      properties:
+        systemAvatar:
+          type: boolean
+        avatarType:
+          type: string
+          enum:
+          - PROJECT
+          - USER
+          - ISSUETYPE
+          - OTHER
+        iconType:
+          $ref: '#/components/schemas/IconType'
+        contentType:
+          type: string
+        owner:
+          type: string
+        id:
+          type: integer
+          format: int64
+        fileName:
+          type: string
+    CacheLineGenericValue:
+      type: object
+      properties:
+        valueRef:
+          type: object
+        loadTime:
+          type: integer
+          format: int64
+        useSoftReference:
+          type: boolean
+    CacheLineListGenericValue:
+      type: object
+      properties:
+        valueRef:
+          type: object
+        loadTime:
+          type: integer
+          format: int64
+        useSoftReference:
+          type: boolean
+        value:
+          type: array
+          items:
+            $ref: '#/components/schemas/GenericValue'
+    DOMConfiguration:
+      type: object
+      properties:
+        parameterNames:
+          $ref: '#/components/schemas/DOMStringList'
+    DOMImplementation:
+      type: object
+    DOMStringList:
+      type: object
+      properties:
+        length:
+          type: integer
+          format: int32
+    Document:
+      type: object
+      properties:
+        doctype:
+          $ref: '#/components/schemas/DocumentType'
+        documentElement:
+          $ref: '#/components/schemas/Element'
+        xmlStandalone:
+          type: boolean
+        xmlVersion:
+          type: string
+        strictErrorChecking:
+          type: boolean
+        documentURI:
+          type: string
+        domConfig:
+          $ref: '#/components/schemas/DOMConfiguration'
+        xmlEncoding:
+          type: string
+        inputEncoding:
+          type: string
+        implementation:
+          $ref: '#/components/schemas/DOMImplementation'
+        childNodes:
+          $ref: '#/components/schemas/NodeList'
+        nodeName:
+          type: string
+        textContent:
+          type: string
+        nodeValue:
+          type: string
+        parentNode:
+          $ref: '#/components/schemas/Node'
+        firstChild:
+          $ref: '#/components/schemas/Node'
+        lastChild:
+          $ref: '#/components/schemas/Node'
+        previousSibling:
+          $ref: '#/components/schemas/Node'
+        nextSibling:
+          $ref: '#/components/schemas/Node'
+        ownerDocument:
+          $ref: '#/components/schemas/Document'
+        namespaceURI:
+          type: string
+        localName:
+          type: string
+        prefix:
+          type: string
+        nodeType:
+          type: integer
+          format: int32
+        baseURI:
+          type: string
+        attributes:
+          $ref: '#/components/schemas/NamedNodeMap'
+    DocumentType:
+      type: object
+      properties:
+        internalSubset:
+          type: string
+        publicId:
+          type: string
+        entities:
+          $ref: '#/components/schemas/NamedNodeMap'
+        notations:
+          $ref: '#/components/schemas/NamedNodeMap'
+        systemId:
+          type: string
+        name:
+          type: string
+        childNodes:
+          $ref: '#/components/schemas/NodeList'
+        nodeName:
+          type: string
+        textContent:
+          type: string
+        nodeValue:
+          type: string
+        parentNode:
+          $ref: '#/components/schemas/Node'
+        firstChild:
+          $ref: '#/components/schemas/Node'
+        lastChild:
+          $ref: '#/components/schemas/Node'
+        previousSibling:
+          $ref: '#/components/schemas/Node'
+        nextSibling:
+          $ref: '#/components/schemas/Node'
+        ownerDocument:
+          $ref: '#/components/schemas/Document'
+        namespaceURI:
+          type: string
+        localName:
+          type: string
+        prefix:
+          type: string
+        nodeType:
+          type: integer
+          format: int32
+        baseURI:
+          type: string
+        attributes:
+          $ref: '#/components/schemas/NamedNodeMap'
+    Element:
+      type: object
+      properties:
+        tagName:
+          type: string
+        attributeNode:
+          $ref: '#/components/schemas/Attr'
+        attributeNodeNS:
+          $ref: '#/components/schemas/Attr'
+        schemaTypeInfo:
+          $ref: '#/components/schemas/TypeInfo'
+        childNodes:
+          $ref: '#/components/schemas/NodeList'
+        nodeName:
+          type: string
+        textContent:
+          type: string
+        nodeValue:
+          type: string
+        parentNode:
+          $ref: '#/components/schemas/Node'
+        firstChild:
+          $ref: '#/components/schemas/Node'
+        lastChild:
+          $ref: '#/components/schemas/Node'
+        previousSibling:
+          $ref: '#/components/schemas/Node'
+        nextSibling:
+          $ref: '#/components/schemas/Node'
+        ownerDocument:
+          $ref: '#/components/schemas/Document'
+        namespaceURI:
+          type: string
+        localName:
+          type: string
+        prefix:
+          type: string
+        nodeType:
+          type: integer
+          format: int32
+        baseURI:
+          type: string
+        attributes:
+          $ref: '#/components/schemas/NamedNodeMap'
+    GenericDelegator:
+      type: object
+      properties:
+        modelGroupReader:
+          $ref: '#/components/schemas/ModelGroupReader'
+        modelReader:
+          $ref: '#/components/schemas/ModelReader'
+        delegatorName:
+          type: string
+        primaryKeyCache:
+          $ref: '#/components/schemas/UtilCacheGenericEntityGenericValue'
+        andCache:
+          $ref: '#/components/schemas/UtilCacheGenericPKListGenericValue'
+        allCache:
+          $ref: '#/components/schemas/UtilCacheStringListGenericValue'
+        sequencer:
+          $ref: '#/components/schemas/SequenceUtil'
+    GenericEntity:
+      type: object
+      properties:
+        delegatorName:
+          type: string
+        fields:
+          type: object
+          additionalProperties:
+            type: object
+          writeOnly: true
+        entityName:
+          type: string
+        modelEntity:
+          $ref: '#/components/schemas/ModelEntity'
+        modified:
+          type: boolean
+        delegator:
+          $ref: '#/components/schemas/GenericDelegator'
+        primaryKey:
+          type: object
+          properties:
+            delegatorName:
+              type: string
+            fields:
+              type: object
+              additionalProperties:
+                type: object
+              writeOnly: true
+            entityName:
+              type: string
+            modelEntity:
+              $ref: '#/components/schemas/ModelEntity'
+            modified:
+              type: boolean
+            delegator:
+              $ref: '#/components/schemas/GenericDelegator'
+            pkfields:
+              type: object
+              additionalProperties:
+                type: object
+              writeOnly: true
+            nonPKFields:
+              type: object
+              additionalProperties:
+                type: object
+              writeOnly: true
+            allKeys:
+              type: array
+              items:
+                type: string
+            allFields:
+              type: object
+              additionalProperties:
+                type: object
+            empty:
+              type: boolean
+          additionalProperties:
+            type: object
+        pkfields:
+          type: object
+          additionalProperties:
+            type: object
+          writeOnly: true
+        nonPKFields:
+          type: object
+          additionalProperties:
+            type: object
+          writeOnly: true
+        allKeys:
+          type: array
+          items:
+            type: string
+        allFields:
+          type: object
+          additionalProperties:
+            type: object
+        empty:
+          type: boolean
+      additionalProperties:
+        type: object
+    GenericPK:
+      type: object
+      properties:
+        delegatorName:
+          type: string
+        fields:
+          type: object
+          additionalProperties:
+            type: object
+          writeOnly: true
+        entityName:
+          type: string
+        modelEntity:
+          $ref: '#/components/schemas/ModelEntity'
+        modified:
+          type: boolean
+        delegator:
+          $ref: '#/components/schemas/GenericDelegator'
+        primaryKey:
+          type: object
+          properties:
+            delegatorName:
+              type: string
+            fields:
+              type: object
+              additionalProperties:
+                type: object
+              writeOnly: true
+            entityName:
+              type: string
+            modelEntity:
+              $ref: '#/components/schemas/ModelEntity'
+            modified:
+              type: boolean
+            delegator:
+              $ref: '#/components/schemas/GenericDelegator'
+            pkfields:
+              type: object
+              additionalProperties:
+                type: object
+              writeOnly: true
+            nonPKFields:
+              type: object
+              additionalProperties:
+                type: object
+              writeOnly: true
+            allKeys:
+              type: array
+              items:
+                type: string
+            allFields:
+              type: object
+              additionalProperties:
+                type: object
+            empty:
+              type: boolean
+          additionalProperties:
+            type: object
+        pkfields:
+          type: object
+          additionalProperties:
+            type: object
+          writeOnly: true
+        nonPKFields:
+          type: object
+          additionalProperties:
+            type: object
+          writeOnly: true
+        allKeys:
+          type: array
+          items:
+            type: string
+        allFields:
+          type: object
+          additionalProperties:
+            type: object
+        empty:
+          type: boolean
+      additionalProperties:
+        type: object
+    GenericValue:
+      type: object
+      properties:
+        delegatorName:
+          type: string
+        fields:
+          type: object
+          additionalProperties:
+            type: object
+          writeOnly: true
+        entityName:
+          type: string
+        modelEntity:
+          $ref: '#/components/schemas/ModelEntity'
+        modified:
+          type: boolean
+        delegator:
+          $ref: '#/components/schemas/GenericDelegator'
+        primaryKey:
+          type: object
+          properties:
+            delegatorName:
+              type: string
+            fields:
+              type: object
+              additionalProperties:
+                type: object
+              writeOnly: true
+            entityName:
+              type: string
+            modelEntity:
+              $ref: '#/components/schemas/ModelEntity'
+            modified:
+              type: boolean
+            delegator:
+              $ref: '#/components/schemas/GenericDelegator'
+            pkfields:
+              type: object
+              additionalProperties:
+                type: object
+              writeOnly: true
+            nonPKFields:
+              type: object
+              additionalProperties:
+                type: object
+              writeOnly: true
+            allKeys:
+              type: array
+              items:
+                type: string
+            allFields:
+              type: object
+              additionalProperties:
+                type: object
+            empty:
+              type: boolean
+          additionalProperties:
+            type: object
+        pkfields:
+          type: object
+          additionalProperties:
+            type: object
+          writeOnly: true
+        nonPKFields:
+          type: object
+          additionalProperties:
+            type: object
+          writeOnly: true
+        allKeys:
+          type: array
+          items:
+            type: string
+        allFields:
+          type: object
+          additionalProperties:
+            type: object
+        empty:
+          type: boolean
+      additionalProperties:
+        type: object
+    IconType:
+      type: object
+      properties:
+        key:
+          type: string
+    IssueType:
+      type: object
+      properties:
+        avatar:
+          $ref: '#/components/schemas/Avatar'
+        subTask:
+          type: boolean
+        iconUrl:
+          type: string
+        iconUrlHtml:
+          type: string
+        descTranslation:
+          type: string
+        nameTranslation:
+          type: string
+        completeIconUrl:
+          type: string
+        sequence:
+          type: integer
+          format: int64
+        description:
+          type: string
+        name:
+          type: string
+        id:
+          type: string
+    ModelEntity:
+      type: object
+      properties:
+        modelReader:
+          $ref: '#/components/schemas/ModelReader'
+        entityName:
+          type: string
+        tableName:
+          type: string
+          writeOnly: true
+        packageName:
+          type: string
+        dependentOn:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        copyright:
+          type: string
+        author:
+          type: string
+        version:
+          type: string
+        doLock:
+          type: boolean
+        neverCache:
+          type: boolean
+        pksSize:
+          type: integer
+          format: int32
+        pksIterator:
+          type: object
+        nopksIterator:
+          type: object
+        fieldsIterator:
+          type: object
+        nopksSize:
+          type: integer
+          format: int32
+        plainTableName:
+          type: string
+        pksCopy:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelField'
+        nopksCopy:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelField'
+        fieldsSize:
+          type: integer
+          format: int32
+        fieldsCopy:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelField'
+        allFieldNames:
+          type: array
+          items:
+            type: string
+        pkFieldNames:
+          type: array
+          items:
+            type: string
+        noPkFieldNames:
+          type: array
+          items:
+            type: string
+        relationsSize:
+          type: integer
+          format: int32
+        relationsIterator:
+          type: object
+        indexesSize:
+          type: integer
+          format: int32
+        indexesIterator:
+          type: object
+        functionBasedIndexesIterator:
+          type: object
+    ModelField:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        colName:
+          type: string
+        isPk:
+          type: boolean
+        validatorsSize:
+          type: integer
+          format: int32
+    ModelGroupReader:
+      type: object
+      properties:
+        groupCache:
+          type: object
+          additionalProperties:
+            type: string
+        groupNames:
+          type: array
+          items:
+            type: string
+        modelName:
+          type: string
+        entityGroupResourceHandler:
+          $ref: '#/components/schemas/ResourceHandler'
+    ModelReader:
+      type: object
+      properties:
+        entityCache:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ModelEntity'
+        resourceHandlerEntitiesKeyIterator:
+          type: object
+        entityNamesIterator:
+          type: object
+        entityNames:
+          type: array
+          items:
+            type: string
+    NamedNodeMap:
+      type: object
+      properties:
+        namedItem:
+          $ref: '#/components/schemas/Node'
+        namedItemNS:
+          $ref: '#/components/schemas/Node'
+        length:
+          type: integer
+          format: int32
+    Node:
+      type: object
+      properties:
+        childNodes:
+          $ref: '#/components/schemas/NodeList'
+        nodeName:
+          type: string
+        textContent:
+          type: string
+        nodeValue:
+          type: string
+        parentNode:
+          $ref: '#/components/schemas/Node'
+        firstChild:
+          $ref: '#/components/schemas/Node'
+        lastChild:
+          $ref: '#/components/schemas/Node'
+        previousSibling:
+          $ref: '#/components/schemas/Node'
+        nextSibling:
+          $ref: '#/components/schemas/Node'
+        ownerDocument:
+          $ref: '#/components/schemas/Document'
+        namespaceURI:
+          type: string
+        localName:
+          type: string
+        prefix:
+          type: string
+        nodeType:
+          type: integer
+          format: int32
+        baseURI:
+          type: string
+        attributes:
+          $ref: '#/components/schemas/NamedNodeMap'
+    NodeList:
+      type: object
+      properties:
+        length:
+          type: integer
+          format: int32
+    Project:
+      type: object
+      properties:
+        lead:
+          $ref: '#/components/schemas/ApplicationUser'
+        projectTypeKey:
+          $ref: '#/components/schemas/ProjectTypeKey'
+        issueTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/IssueType'
+        projectCategory:
+          $ref: '#/components/schemas/ProjectCategory'
+        projectCategoryObject:
+          $ref: '#/components/schemas/ProjectCategory'
+        genericValue:
+          type: object
+          properties:
+            delegatorName:
+              type: string
+            fields:
+              type: object
+              additionalProperties:
+                type: object
+              writeOnly: true
+            entityName:
+              type: string
+            modelEntity:
+              $ref: '#/components/schemas/ModelEntity'
+            modified:
+              type: boolean
+            delegator:
+              $ref: '#/components/schemas/GenericDelegator'
+            primaryKey:
+              type: object
+              properties:
+                delegatorName:
+                  type: string
+                fields:
+                  type: object
+                  additionalProperties:
+                    type: object
+                  writeOnly: true
+                entityName:
+                  type: string
+                modelEntity:
+                  $ref: '#/components/schemas/ModelEntity'
+                modified:
+                  type: boolean
+                delegator:
+                  $ref: '#/components/schemas/GenericDelegator'
+                pkfields:
+                  type: object
+                  additionalProperties:
+                    type: object
+                  writeOnly: true
+                nonPKFields:
+                  type: object
+                  additionalProperties:
+                    type: object
+                  writeOnly: true
+                allKeys:
+                  type: array
+                  items:
+                    type: string
+                allFields:
+                  type: object
+                  additionalProperties:
+                    type: object
+                empty:
+                  type: boolean
+              additionalProperties:
+                type: object
+            pkfields:
+              type: object
+              additionalProperties:
+                type: object
+              writeOnly: true
+            nonPKFields:
+              type: object
+              additionalProperties:
+                type: object
+              writeOnly: true
+            allKeys:
+              type: array
+              items:
+                type: string
+            allFields:
+              type: object
+              additionalProperties:
+                type: object
+            empty:
+              type: boolean
+          additionalProperties:
+            type: object
+        projectLead:
+          $ref: '#/components/schemas/ApplicationUser'
+        leadUserKey:
+          type: string
+        leadUserName:
+          type: string
+        assigneeType:
+          type: integer
+          format: int64
+        originalKey:
+          type: string
+        archived:
+          type: boolean
+        avatar:
+          $ref: '#/components/schemas/Avatar'
+        projectComponents:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectComponent'
+        description:
+          type: string
+        components:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectComponent'
+        url:
+          type: string
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Version'
+        email:
+          type: string
+        name:
+          type: string
+        key:
+          type: string
+        id:
+          type: integer
+          format: int64
+    ProjectCategory:
+      type: object
+      properties:
+        description:
+          type: string
+        name:
+          type: string
+        id:
+          type: integer
+          format: int64
+    ProjectComponent:
+      type: object
+      properties:
+        lead:
+          type: string
+        genericValue:
+          type: object
+          properties:
+            delegatorName:
+              type: string
+            fields:
+              type: object
+              additionalProperties:
+                type: object
+              writeOnly: true
+            entityName:
+              type: string
+            modelEntity:
+              $ref: '#/components/schemas/ModelEntity'
+            modified:
+              type: boolean
+            delegator:
+              $ref: '#/components/schemas/GenericDelegator'
+            primaryKey:
+              type: object
+              properties:
+                delegatorName:
+                  type: string
+                fields:
+                  type: object
+                  additionalProperties:
+                    type: object
+                  writeOnly: true
+                entityName:
+                  type: string
+                modelEntity:
+                  $ref: '#/components/schemas/ModelEntity'
+                modified:
+                  type: boolean
+                delegator:
+                  $ref: '#/components/schemas/GenericDelegator'
+                pkfields:
+                  type: object
+                  additionalProperties:
+                    type: object
+                  writeOnly: true
+                nonPKFields:
+                  type: object
+                  additionalProperties:
+                    type: object
+                  writeOnly: true
+                allKeys:
+                  type: array
+                  items:
+                    type: string
+                allFields:
+                  type: object
+                  additionalProperties:
+                    type: object
+                empty:
+                  type: boolean
+              additionalProperties:
+                type: object
+            pkfields:
+              type: object
+              additionalProperties:
+                type: object
+              writeOnly: true
+            nonPKFields:
+              type: object
+              additionalProperties:
+                type: object
+              writeOnly: true
+            allKeys:
+              type: array
+              items:
+                type: string
+            allFields:
+              type: object
+              additionalProperties:
+                type: object
+            empty:
+              type: boolean
+          additionalProperties:
+            type: object
+        componentLead:
+          $ref: '#/components/schemas/ApplicationUser'
+        assigneeType:
+          type: integer
+          format: int64
+        archived:
+          type: boolean
+        description:
+          type: string
+        projectId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        id:
+          type: integer
+          format: int64
+    ProjectTypeKey:
+      type: object
+      properties:
+        key:
+          type: string
+    ResourceHandler:
+      type: object
+      properties:
+        loaderName:
+          type: string
+        location:
+          type: string
+        fullLocation:
+          type: string
+        fileResource:
+          type: boolean
+        stream:
+          type: object
+        document:
+          $ref: '#/components/schemas/Document'
+    SequenceUtil:
+      type: object
+    TypeInfo:
+      type: object
+      properties:
+        typeNamespace:
+          type: string
+        typeName:
+          type: string
+    User:
+      type: object
+      properties:
+        emailAddress:
+          type: string
+        directoryId:
+          type: integer
+          format: int64
+        active:
+          type: boolean
+        displayName:
+          type: string
+        name:
+          type: string
+    UtilCacheGenericEntityGenericValue:
+      type: object
+      properties:
+        name:
+          type: string
+        keyLRUList:
+          type: array
+          items:
+            $ref: '#/components/schemas/GenericEntity'
+        cacheLineTable:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CacheLineGenericValue'
+        hitCount:
+          type: integer
+          format: int64
+        missCount:
+          type: integer
+          format: int64
+        maxSize:
+          type: integer
+          format: int64
+        expireTime:
+          type: integer
+          format: int64
+        useSoftReference:
+          type: boolean
+        propertiesParams:
+          type: string
+          writeOnly: true
+    UtilCacheGenericPKListGenericValue:
+      type: object
+      properties:
+        name:
+          type: string
+        keyLRUList:
+          type: array
+          items:
+            $ref: '#/components/schemas/GenericPK'
+        cacheLineTable:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CacheLineListGenericValue'
+        hitCount:
+          type: integer
+          format: int64
+        missCount:
+          type: integer
+          format: int64
+        maxSize:
+          type: integer
+          format: int64
+        expireTime:
+          type: integer
+          format: int64
+        useSoftReference:
+          type: boolean
+        propertiesParams:
+          type: string
+          writeOnly: true
+    UtilCacheStringListGenericValue:
+      type: object
+      properties:
+        name:
+          type: string
+        keyLRUList:
+          type: array
+          items:
+            type: string
+        cacheLineTable:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CacheLineListGenericValue'
+        hitCount:
+          type: integer
+          format: int64
+        missCount:
+          type: integer
+          format: int64
+        maxSize:
+          type: integer
+          format: int64
+        expireTime:
+          type: integer
+          format: int64
+        useSoftReference:
+          type: boolean
+        propertiesParams:
+          type: string
+          writeOnly: true
+    Version:
+      type: object
+      properties:
+        startDate:
+          type: string
+          format: date-time
+        releaseDate:
+          type: string
+          format: date-time
+        projectObject:
+          $ref: '#/components/schemas/Project'
+        archived:
+          type: boolean
+        released:
+          type: boolean
+        sequence:
+          type: integer
+          format: int64
+        project:
+          $ref: '#/components/schemas/Project'
+        description:
+          type: string
+        projectId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        id:
+          type: integer
+          format: int64
+    HeaderBean:
+      type: object
+      xml:
+        name: header
+    NewSavedReportBean:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        settings:
+          type: object
+          additionalProperties:
+            type: object
+    ChangedSavedReportBean:
+      type: object
+      properties:
+        name:
+          type: string
+        settings:
+          type: object
+          additionalProperties:
+            type: object
+    SavedReportDraftBean:
+      type: object
+      properties:
+        type:
+          type: string
+        settings:
+          type: object
+          additionalProperties:
+            type: object
+    AffectedEntityBean:
+      type: object
+      properties:
+        descriptionKey:
+          type: string
+        numberOfOccurrences:
+          type: integer
+          format: int64
+    JiraUserBean:
+      type: object
+      properties:
+        key:
+          type: string
+          xml:
+            attribute: true
+        name:
+          type: string
+          xml:
+            attribute: true
+        displayName:
+          type: string
+          xml:
+            attribute: true
+        active:
+          type: boolean
+          xml:
+            attribute: true
+        timeZone:
+          type: string
+          xml:
+            attribute: true
+        locale:
+          type: string
+          xml:
+            attribute: true
+        avatarUrls:
+          type: object
+          additionalProperties:
+            type: string
+    UsersBean:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserBean'
+    SearchBean:
+      type: object
+      properties:
+        keys:
+          type: array
+          items:
+            type: string
+    DayScheduleBean:
+      type: object
+      properties:
+        date:
+          type: string
+          description: Date
+          example: yyyy-MM-dd
+          xml:
+            attribute: true
+        requiredSeconds:
+          type: integer
+          format: int64
+          xml:
+            attribute: true
+        type:
+          type: string
+          xml:
+            attribute: true
+          enum:
+          - WORKING_DAY
+          - NON_WORKING_DAY
+          - HOLIDAY
+          - HOLIDAY_AND_NON_WORKING_DAY
+        holiday:
+          $ref: '#/components/schemas/HolidayBean'
+      xml:
+        name: day-schedule
+    DayScheduleBeanWrapper:
+      type: object
+      properties:
+        numberOfWorkingDays:
+          type: integer
+          description: Number of Working Days
+          format: int32
+          example: 1
+          xml:
+            attribute: true
+        requiredSeconds:
+          type: integer
+          description: Required Seconds
+          format: int64
+          example: 3600
+          xml:
+            attribute: true
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/DayScheduleBean'
+    UserSchedulesRequestBean:
+      type: object
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+        usernames:
+          type: array
+          items:
+            type: string
+    DayScheduleBeanV2Wrapper:
+      type: object
+      properties:
+        numberOfWorkingDays:
+          type: integer
+          description: Number of Working Days
+          format: int32
+          example: 1
+          xml:
+            attribute: true
+        requiredSeconds:
+          type: integer
+          description: Required Seconds
+          format: int64
+          example: 3600
+          xml:
+            attribute: true
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/DayScheduleV2Bean'
+      xml:
+        name: day-schedule-wrapper
+    DayScheduleV2Bean:
+      type: object
+      properties:
+        date:
+          type: string
+          xml:
+            attribute: true
+        requiredSeconds:
+          type: integer
+          format: int64
+          xml:
+            attribute: true
+        type:
+          type: string
+          xml:
+            attribute: true
+          enum:
+          - WORKING_DAY
+          - NON_WORKING_DAY
+          - HOLIDAY
+          - HOLIDAY_AND_NON_WORKING_DAY
+        holiday:
+          $ref: '#/components/schemas/HolidayV2Bean'
+      xml:
+        name: day-schedule
+    UserScheduleV2Bean:
+      type: object
+      properties:
+        schedule:
+          $ref: '#/components/schemas/DayScheduleBeanV2Wrapper'
+        user:
+          $ref: '#/components/schemas/UserBean'
+      xml:
+        name: user-schedule
+    UserSchedulesRequestV2Bean:
+      type: object
+      properties:
+        from:
+          type: string
+          description: Date From
+          example: yyyy-MM-dd
+          xml:
+            attribute: true
+        to:
+          type: string
+          description: Date To
+          example: yyyy-MM-dd
+          xml:
+            attribute: true
+        userKeys:
+          type: array
+          items:
+            type: string
+            description: User keys
+            example: johndoe123
+    StaticListValue:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Static List Value ID
+          format: int32
+          readOnly: true
+          example: 12345
+          xml:
+            attribute: true
+        name:
+          type: string
+          description: Static List Value Name
+          example: myStaticListValueName
+          xml:
+            attribute: true
+        value:
+          type: string
+          description: Static List Value
+          example: value
+          xml:
+            attribute: true
+        removed:
+          type: boolean
+          description: Is Removed
+          readOnly: true
+          example: true
+          xml:
+            attribute: true
+        sequence:
+          type: integer
+          description: Sequence
+          format: int32
+          readOnly: true
+          example: 1
+          xml:
+            attribute: true
+        workAttributeId:
+          type: integer
+          description: Work Attribute ID
+          format: int32
+          readOnly: true
+          example: 12345
+          xml:
+            attribute: true
+      description: Static List Values.  Omit if work attribute is not a STATIC_LIST
+      xml:
+        name: static-list-value
+    WorkAttribute:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Work Attribute ID
+          format: int32
+          readOnly: true
+          example: 12345
+          xml:
+            attribute: true
+        key:
+          type: string
+          description: Work Attribute Key
+          readOnly: true
+          example: _abc_
+          xml:
+            attribute: true
+        name:
+          type: string
+          description: Work Attribute Name
+          example: abc
+          xml:
+            attribute: true
+        type:
+          $ref: '#/components/schemas/WorkAttributeType'
+        externalUrl:
+          type: string
+          description: External Url
+          readOnly: true
+          example: http://www.example.com
+          xml:
+            attribute: true
+        required:
+          type: boolean
+          description: Is Required
+          example: true
+          xml:
+            attribute: true
+        sequence:
+          type: integer
+          description: Sequence
+          format: int32
+          readOnly: true
+          example: 1
+          xml:
+            attribute: true
+        staticListValues:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaticListValue'
+      description: Work Attribute Value ID
+      xml:
+        name: work-attribute
+    WorkAttributeType:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Type Name
+          example: ACCOUNT, BILLABLE_SECONDS, CHECKBOX, DYNAMIC_DROPDOWN, INPUT_FIELD,
+            INPUT_NUMERIC, STATIC_LIST
+          xml:
+            attribute: true
+        value:
+          type: string
+          description: Type Value
+          example: ACCOUNT
+          xml:
+            attribute: true
+          enum:
+          - ACCOUNT
+          - BILLABLE_SECONDS
+          - CHECKBOX
+          - DYNAMIC_DROPDOWN
+          - INPUT_FIELD
+          - INPUT_NUMERIC
+          - STATIC_LIST
+        systemType:
+          type: boolean
+          description: Is System Type
+          example: true
+          xml:
+            attribute: true
+      description: Work Attribute Type
+      xml:
+        name: work-attribute-type
+    WorkAttributeValue:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Work Attribute Value ID
+          format: int32
+          readOnly: true
+          example: 12345
+          xml:
+            attribute: true
+        worklogId:
+          type: integer
+          description: Worklog ID
+          format: int64
+          example: 12345
+          xml:
+            attribute: true
+        workAttribute:
+          $ref: '#/components/schemas/WorkAttribute'
+        value:
+          type: string
+          description: Work Attribute Value
+          example: workAttributeValue
+          xml:
+            attribute: true
+        numericValue:
+          type: number
+          description: Numeric Value
+          format: double
+          example: 1.0
+        systemType:
+          type: boolean
+          description: Is System Type
+          example: true
+        numericAttribute:
+          type: boolean
+        billableAttribute:
+          type: boolean
+      xml:
+        name: work-attribute-value
+    WorkloadSchemeBean:
+      type: object
+      properties:
+        description:
+          type: string
+          xml:
+            attribute: true
+        id:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        name:
+          type: string
+          xml:
+            attribute: true
+        memberCount:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkloadSchemeDay'
+        defaultScheme:
+          type: boolean
+      xml:
+        name: workload
+    WorkloadSchemeDay:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        day:
+          type: integer
+          format: int32
+          xml:
+            attribute: true
+        requiredSeconds:
+          type: integer
+          format: int64
+          xml:
+            name: seconds
+            attribute: true
+    WorkloadMoveMembersBean:
+      type: object
+      properties:
+        schemeId:
+          type: integer
+          description: Workload scheme Id
+          format: int32
+          example: 12345
+          xml:
+            attribute: true
+        userKeys:
+          type: array
+          description: User keys of the members
+          example: johndoe123
+          items:
+            type: string
+            description: User keys of the members
+            example: johndoe123
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
