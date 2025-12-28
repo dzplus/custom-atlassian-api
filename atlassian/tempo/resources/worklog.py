@@ -156,13 +156,22 @@ class WorklogResource(BaseResource):
         task_key: Optional[list[str]] = None,
         project_id: Optional[list[int]] = None,
         project_key: Optional[list[str]] = None,
-        epic_key: Optional[list[str]] = None,
+        team_id: Optional[list[int]] = None,
+        role_id: Optional[list[int]] = None,
         account_id: Optional[list[int]] = None,
         account_key: Optional[list[str]] = None,
+        filter_id: Optional[list[int]] = None,
+        customer_id: Optional[list[int]] = None,
+        category_id: Optional[list[int]] = None,
+        category_type_id: Optional[list[int]] = None,
+        epic_key: Optional[list[str]] = None,
+        location_ids: Optional[list[int]] = None,
         include_subtasks: Optional[bool] = None,
     ) -> list[Worklog]:
         """
         搜索工时记录
+
+        API 文档参考：POST /rest/tempo-timesheets/4/worklogs/search (SearchParamsBean)
 
         Args:
             from_date: 开始日期 "2024-01-01"
@@ -172,9 +181,16 @@ class WorklogResource(BaseResource):
             task_key: Issue Key 列表（如 ["NF-433"]）
             project_id: 项目数字 ID 列表
             project_key: 项目 Key 列表
-            epic_key: Epic Key 列表
+            team_id: 团队 ID 列表
+            role_id: 角色 ID 列表
             account_id: 账户数字 ID 列表
             account_key: 账户 Key 列表
+            filter_id: 过滤器 ID 列表
+            customer_id: 客户 ID 列表
+            category_id: 分类 ID 列表
+            category_type_id: 分类类型 ID 列表
+            epic_key: Epic Key 列表
+            location_ids: 位置 ID 列表
             include_subtasks: 是否包含子任务
 
         Returns:
@@ -188,9 +204,16 @@ class WorklogResource(BaseResource):
             task_key=task_key,
             project_id=project_id,
             project_key=project_key,
-            epic_key=epic_key,
+            team_id=team_id,
+            role_id=role_id,
             account_id=account_id,
             account_key=account_key,
+            filter_id=filter_id,
+            customer_id=customer_id,
+            category_id=category_id,
+            category_type_id=category_type_id,
+            epic_key=epic_key,
+            location_ids=location_ids,
             include_subtasks=include_subtasks,
         )
         data = await self._client.post_json(
@@ -209,9 +232,16 @@ class WorklogResource(BaseResource):
         task_key: Optional[list[str]] = None,
         project_id: Optional[list[int]] = None,
         project_key: Optional[list[str]] = None,
-        epic_key: Optional[list[str]] = None,
+        team_id: Optional[list[int]] = None,
+        role_id: Optional[list[int]] = None,
         account_id: Optional[list[int]] = None,
         account_key: Optional[list[str]] = None,
+        filter_id: Optional[list[int]] = None,
+        customer_id: Optional[list[int]] = None,
+        category_id: Optional[list[int]] = None,
+        category_type_id: Optional[list[int]] = None,
+        epic_key: Optional[list[str]] = None,
+        location_ids: Optional[list[int]] = None,
         include_subtasks: Optional[bool] = None,
     ) -> list[dict]:
         """搜索工时记录原始数据"""
@@ -223,9 +253,16 @@ class WorklogResource(BaseResource):
             task_key=task_key,
             project_id=project_id,
             project_key=project_key,
-            epic_key=epic_key,
+            team_id=team_id,
+            role_id=role_id,
             account_id=account_id,
             account_key=account_key,
+            filter_id=filter_id,
+            customer_id=customer_id,
+            category_id=category_id,
+            category_type_id=category_type_id,
+            epic_key=epic_key,
+            location_ids=location_ids,
             include_subtasks=include_subtasks,
         )
         return await self._client.post_json(
