@@ -75,8 +75,47 @@ class Project(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class StatusCategory(BaseModel):
+    """状态分类"""
+    self_url: Optional[str] = Field(None, alias="self")
+    id: Optional[int] = None
+    key: Optional[str] = None
+    color_name: Optional[str] = Field(None, alias="colorName")
+    name: Optional[str] = None
+
+    model_config = {"populate_by_name": True}
+
+
+class IssueTypeStatus(BaseModel):
+    """Issue 类型下的状态"""
+    self_url: Optional[str] = Field(None, alias="self")
+    id: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    icon_url: Optional[str] = Field(None, alias="iconUrl")
+    status_category: Optional[StatusCategory] = Field(None, alias="statusCategory")
+
+    model_config = {"populate_by_name": True}
+
+
+class ProjectIssueTypeStatuses(BaseModel):
+    """
+    项目中某个 Issue 类型的状态列表
+
+    来自 GET /rest/api/2/project/{projectIdOrKey}/statuses
+    返回项目中每个 Issue 类型对应的工作流状态
+    """
+    self_url: Optional[str] = Field(None, alias="self")
+    id: Optional[str] = None
+    name: Optional[str] = None
+    subtask: Optional[bool] = None
+    statuses: Optional[list[IssueTypeStatus]] = None
+
+    model_config = {"populate_by_name": True}
+
+
 class ProjectStatus(BaseModel):
-    """项目状态（用于特定 issue type）"""
+    """项目状态（用于特定 issue type）- 已废弃，请使用 ProjectIssueTypeStatuses"""
     self_url: Optional[str] = Field(None, alias="self")
     id: Optional[str] = None
     name: Optional[str] = None

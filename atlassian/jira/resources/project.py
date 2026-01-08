@@ -21,6 +21,7 @@ from atlassian.jira.models.project import (
     ProjectComponent,
     ProjectVersion,
     ProjectStatus,
+    ProjectIssueTypeStatuses,
 )
 from atlassian.jira.models.common import EntityProperty, EntityPropertyKeys
 
@@ -188,21 +189,24 @@ class ProjectResource(BaseResource):
         path = f"{self.BASE_PATH}/{project_id_or_key}/versions"
         return await self.client.get_json(path)
 
-    async def get_statuses(self, project_id_or_key: str) -> list[ProjectStatus]:
+    async def get_statuses(self, project_id_or_key: str) -> list[ProjectIssueTypeStatuses]:
         """
-        获取项目状态（按 issue type 分组）
+        获取项目中各 Issue 类型的工作流状态
 
         GET /rest/api/2/project/{projectIdOrKey}/statuses
+
+        返回项目中每个 Issue 类型对应的工作流状态列表。
+        例如: Epic、Story、Bug 等类型各自支持的状态（待办、进行中、已完成等）
 
         Args:
             project_id_or_key: 项目 ID 或 Key
 
         Returns:
-            list[ProjectStatus]: 状态列表（每个 issue type 一组）
+            list[ProjectIssueTypeStatuses]: 各 Issue 类型的状态列表
         """
         path = f"{self.BASE_PATH}/{project_id_or_key}/statuses"
         data = await self.client.get_json(path)
-        return [ProjectStatus.model_validate(s) for s in data]
+        return [ProjectIssueTypeStatuses.model_validate(s) for s in data]
 
     async def get_statuses_raw(self, project_id_or_key: str) -> list[dict]:
         """

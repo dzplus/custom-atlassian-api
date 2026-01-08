@@ -29,6 +29,13 @@ from atlassian.jira.resources.screen import ScreenResource
 from atlassian.jira.resources.priority import PriorityResource
 from atlassian.jira.resources.priority_scheme import PrioritySchemeResource
 
+# Agile Resources
+from atlassian.jira.resources.board import BoardResource
+from atlassian.jira.resources.sprint import SprintResource
+from atlassian.jira.resources.epic import EpicResource
+from atlassian.jira.resources.backlog import BacklogResource
+from atlassian.jira.resources.agile_issue import AgileIssueResource
+
 __all__ = [
     "MyselfResource",
     "IssueResource",
@@ -56,4 +63,10 @@ __all__ = [
     "ScreenResource",
     "PriorityResource",
     "PrioritySchemeResource",
+    # Agile
+    "BoardResource",
+    "SprintResource",
+    "EpicResource",
+    "BacklogResource",
+    "AgileIssueResource",
 ]

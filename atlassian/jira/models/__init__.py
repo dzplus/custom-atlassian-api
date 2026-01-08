@@ -37,7 +37,16 @@ from atlassian.jira.models.issue_link import (
     IssueLinkTypeList,
 )
 from atlassian.jira.models.attachment import Attachment, AttachmentMeta, ArchiveEntry, ExpandedArchive
-from atlassian.jira.models.project import Project, ProjectCategory, ProjectComponent, ProjectVersion, ProjectStatus
+from atlassian.jira.models.project import (
+    Project,
+    ProjectCategory,
+    ProjectComponent,
+    ProjectVersion,
+    ProjectStatus,
+    StatusCategory,
+    IssueTypeStatus,
+    ProjectIssueTypeStatuses,
+)
 from atlassian.jira.models.custom_field import CustomField, CustomFieldsResponse
 
 # Common models
@@ -146,6 +155,34 @@ from atlassian.jira.models.issue_type import (
     PriorityScheme,
 )
 
+# Agile models
+from atlassian.jira.models.agile import (
+    Board,
+    BoardList,
+    BoardLocation,
+    BoardConfiguration,
+    ColumnConfig,
+    EstimationConfig,
+    RankingConfig,
+    Sprint,
+    SprintList,
+    CreateSprintRequest,
+    UpdateSprintRequest,
+    Epic,
+    EpicList,
+    UpdateEpicRequest,
+    RankEpicRequest,
+    AgileIssue,
+    AgileIssueList,
+    IssueEstimation,
+    RankIssuesRequest,
+    MoveIssuesToSprintRequest,
+    MoveIssuesToBacklogRequest,
+    MoveIssuesToEpicRequest,
+    QuickFilter,
+    QuickFilterList,
+)
+
 __all__ = [
     # User
     "User",
@@ -193,6 +230,9 @@ __all__ = [
     "ProjectComponent",
     "ProjectVersion",
     "ProjectStatus",
+    "StatusCategory",
+    "IssueTypeStatus",
+    "ProjectIssueTypeStatuses",
     # Custom Field
     "CustomField",
     "CustomFieldsResponse",
@@ -274,4 +314,29 @@ __all__ = [
     "IssueTypeSchemeMapping",
     "IssueTypeSchemeProjects",
     "PriorityScheme",
+    # Agile
+    "Board",
+    "BoardList",
+    "BoardLocation",
+    "BoardConfiguration",
+    "ColumnConfig",
+    "EstimationConfig",
+    "RankingConfig",
+    "Sprint",
+    "SprintList",
+    "CreateSprintRequest",
+    "UpdateSprintRequest",
+    "Epic",
+    "EpicList",
+    "UpdateEpicRequest",
+    "RankEpicRequest",
+    "AgileIssue",
+    "AgileIssueList",
+    "IssueEstimation",
+    "RankIssuesRequest",
+    "MoveIssuesToSprintRequest",
+    "MoveIssuesToBacklogRequest",
+    "MoveIssuesToEpicRequest",
+    "QuickFilter",
+    "QuickFilterList",
 ]

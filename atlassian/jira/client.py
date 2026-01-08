@@ -34,6 +34,12 @@ from atlassian.jira.resources import (
     ScreenResource,
     PriorityResource,
     PrioritySchemeResource,
+    # Agile Resources
+    BoardResource,
+    SprintResource,
+    EpicResource,
+    BacklogResource,
+    AgileIssueResource,
 )
 
 
@@ -127,6 +133,13 @@ class JiraClient(BaseHttpClient):
         self._screen: Optional[ScreenResource] = None
         self._priority: Optional[PriorityResource] = None
         self._priority_scheme: Optional[PrioritySchemeResource] = None
+
+        # Agile 资源
+        self._board: Optional[BoardResource] = None
+        self._sprint: Optional[SprintResource] = None
+        self._epic: Optional[EpicResource] = None
+        self._backlog: Optional[BacklogResource] = None
+        self._agile_issue: Optional[AgileIssueResource] = None
 
     @property
     def myself(self) -> MyselfResource:
@@ -309,6 +322,43 @@ class JiraClient(BaseHttpClient):
         if self._priority_scheme is None:
             self._priority_scheme = PrioritySchemeResource(self)
         return self._priority_scheme
+
+    # ========== Agile 资源 ==========
+
+    @property
+    def board(self) -> BoardResource:
+        """看板资源 (agile/1.0/board)"""
+        if self._board is None:
+            self._board = BoardResource(self)
+        return self._board
+
+    @property
+    def sprint(self) -> SprintResource:
+        """Sprint 资源 (agile/1.0/sprint)"""
+        if self._sprint is None:
+            self._sprint = SprintResource(self)
+        return self._sprint
+
+    @property
+    def epic(self) -> EpicResource:
+        """Epic 资源 (agile/1.0/epic)"""
+        if self._epic is None:
+            self._epic = EpicResource(self)
+        return self._epic
+
+    @property
+    def backlog(self) -> BacklogResource:
+        """Backlog 资源 (agile/1.0/backlog)"""
+        if self._backlog is None:
+            self._backlog = BacklogResource(self)
+        return self._backlog
+
+    @property
+    def agile_issue(self) -> AgileIssueResource:
+        """Agile Issue 资源 (agile/1.0/issue)"""
+        if self._agile_issue is None:
+            self._agile_issue = AgileIssueResource(self)
+        return self._agile_issue
 
     # ========== 便捷方法 ==========
 
