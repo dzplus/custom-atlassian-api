@@ -21,8 +21,14 @@ from atlassian.tempo.models.plan import (
 logger = logging.getLogger(__name__)
 
 
-def _parse_items(model_cls: type[BaseModel], data: list[dict]) -> list:
-    """对列表反序列化做 per-item 容错：单条脏数据只丢自己，不影响整页。"""
+def _parse_items(model_cls: type[BaseModel], data: Optional[list[dict]]) -> list:
+    """对列表反序列化做 per-item 容错：单条脏数据只丢自己，不影响整页。
+
+    Tempo Server 在某些边角场景会返回 null body（例如 remove_plan_from_date
+    移除 allocation 的唯一一天，整个 allocation 被删除时），此处兼容处理。
+    """
+    if not data:
+        return []
     parsed = []
     for item in data:
         try:

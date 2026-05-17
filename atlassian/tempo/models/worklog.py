@@ -7,6 +7,20 @@ from typing import Any, Optional
 from pydantic import BaseModel, Field
 
 
+def _compose_started(started: str, started_time: Optional[str]) -> str:
+    """把日期 + 可选 HH:MM[:SS] 拼成 Tempo Timesheets v4 服务端能接受的字符串。
+
+    Tempo Server 的 ``TimesheetWorklogBean`` 不识别独立的 ``startTime``
+    字段（Jackson 抛 UnrecognizedPropertyException 导致 500），
+    需要把开始时间合并进 ``started`` 字段一起下发。
+    """
+    if not started_time:
+        return started
+    # 支持 "HH:MM" 与 "HH:MM:SS" 两种输入
+    time_str = started_time if started_time.count(":") == 2 else f"{started_time}:00"
+    return f"{started}T{time_str}"
+
+
 class WorklogAttributes(BaseModel):
     """工时记录属性"""
     key: Optional[str] = Field(None, alias="_key_")
@@ -74,15 +88,13 @@ class WorklogCreate(BaseModel):
         data = {
             "originTaskId": self.issue_key,
             "worker": self.worker,
-            "started": self.started,
+            "started": _compose_started(self.started, self.started_time),
             "timeSpentSeconds": self.time_spent_seconds,
         }
         if self.billable_seconds is not None:
             data["billableSeconds"] = self.billable_seconds
         if self.description:
             data["comment"] = self.description
-        if self.started_time:
-            data["startTime"] = self.started_time
         if self.attributes:
             data["attributes"] = self.attributes
         return data
@@ -101,18 +113,21 @@ class WorklogUpdate(BaseModel):
         populate_by_name = True
 
     def to_api_dict(self) -> dict:
-        """转换为 API 请求格式"""
+        """转换为 API 请求格式
+
+        ``started_time`` 不会作为独立字段发送（服务端不识别 ``startTime``），
+        而是与 ``started`` 合并为 ISO ``YYYY-MM-DDTHH:MM:SS``；若只传了
+        ``started_time`` 而没传 ``started``，该时间会被忽略。
+        """
         data = {}
         if self.started:
-            data["started"] = self.started
+            data["started"] = _compose_started(self.started, self.started_time)
         if self.time_spent_seconds is not None:
             data["timeSpentSeconds"] = self.time_spent_seconds
         if self.billable_seconds is not None:
             data["billableSeconds"] = self.billable_seconds
         if self.description is not None:
             data["comment"] = self.description
-        if self.started_time:
-            data["startTime"] = self.started_time
         if self.attributes:
             data["attributes"] = self.attributes
         return data
