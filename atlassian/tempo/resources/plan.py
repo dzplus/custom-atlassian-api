@@ -4,7 +4,11 @@ Tempo Plan 资源
 API: /rest/tempo-planning/1/
 """
 
+import logging
 from typing import Optional
+
+from pydantic import BaseModel, ValidationError
+
 from atlassian.common.base import BaseResource
 from atlassian.tempo.models.plan import (
     Allocation,
@@ -13,6 +17,24 @@ from atlassian.tempo.models.plan import (
     Plan,
     PlanSearchParams,
 )
+
+logger = logging.getLogger(__name__)
+
+
+def _parse_items(model_cls: type[BaseModel], data: list[dict]) -> list:
+    """对列表反序列化做 per-item 容错：单条脏数据只丢自己，不影响整页。"""
+    parsed = []
+    for item in data:
+        try:
+            parsed.append(model_cls.model_validate(item))
+        except ValidationError as exc:
+            logger.warning(
+                "skip malformed %s: %s | raw=%s",
+                model_cls.__name__,
+                exc,
+                item,
+            )
+    return parsed
 
 
 class PlanResource(BaseResource):
@@ -82,7 +104,7 @@ class PlanResource(BaseResource):
             params["planItemType"] = plan_item_type
 
         data = await self._client.get_json(self.ALLOCATION_PATH, params=params)
-        return [Allocation.model_validate(item) for item in data]
+        return _parse_items(Allocation, data)
 
     async def get_allocations_raw(
         self,
@@ -265,7 +287,7 @@ class PlanResource(BaseResource):
             f"{self.PLAN_PATH}/search",
             data=params.to_api_dict(),
         )
-        return [PlanLog.model_validate(item) for item in data]
+        return _parse_items(PlanLog, data)
 
     async def search_plans_raw(
         self,
@@ -346,7 +368,7 @@ class PlanResource(BaseResource):
             self.PLAN_PATH,
             data=plan.to_api_dict(),
         )
-        return [PlanLog.model_validate(item) for item in data]
+        return _parse_items(PlanLog, data)
 
     async def update_plan(
         self,
@@ -395,7 +417,7 @@ class PlanResource(BaseResource):
             self.PLAN_PATH,
             data=plan.to_api_dict(),
         )
-        return [PlanLog.model_validate(item) for item in data]
+        return _parse_items(PlanLog, data)
 
     async def remove_plan_from_date(
         self,
@@ -416,4 +438,4 @@ class PlanResource(BaseResource):
             f"{self.PLAN_PATH}/remove/planLog/{plan_id}",
             params={"date": date},
         )
-        return [PlanLog.model_validate(item) for item in data]
+        return _parse_items(PlanLog, data)

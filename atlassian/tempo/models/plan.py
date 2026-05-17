@@ -22,16 +22,16 @@ class Assignee(BaseModel):
 
 class IssueStatus(BaseModel):
     """Issue 状态"""
-    name: str
-    color: str
+    name: Optional[str] = None
+    color: Optional[str] = None
 
 
 class EpicIssue(BaseModel):
     """Epic Issue 信息"""
     model_config = ConfigDict(populate_by_name=True)
 
-    summary: str
-    icon_url: str = Field(alias="iconUrl")
+    summary: Optional[str] = None
+    icon_url: Optional[str] = Field(None, alias="iconUrl")
     estimated_remaining_seconds: Optional[int] = Field(None, alias="estimatedRemainingSeconds")
 
 
@@ -39,11 +39,13 @@ class PlanItem(BaseModel):
     """计划项信息"""
     model_config = ConfigDict(populate_by_name=True)
 
+    # 身份字段必填，其它字段全部容忍上游缺失
+    # （Tempo on-prem 对非标准 issue 经常只回 key/id/planItemUrl）
     key: str
     id: int
-    type: str
-    name: str
-    summary: str
+    type: Optional[str] = None
+    name: Optional[str] = None
+    summary: Optional[str] = None
     description: Optional[str] = None
     icon_name: Optional[str] = Field(None, alias="iconName")
     icon_url: Optional[str] = Field(None, alias="iconUrl")
