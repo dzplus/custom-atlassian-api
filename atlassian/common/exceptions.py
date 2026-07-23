@@ -25,6 +25,11 @@ class AtlassianSessionExpiredError(AtlassianAuthError):
     pass
 
 
+class AtlassianOAuthError(AtlassianAuthError):
+    """OAuth 配置、授权或签名异常"""
+    pass
+
+
 class AtlassianAPIError(AtlassianError):
     """API 调用异常"""
 

@@ -11,6 +11,7 @@ Tempo 是 Jira 的插件，使用与 Jira 相同的认证和 Base URL
 
 from typing import Optional
 
+from atlassian.common.auth import OAuth1Config
 from atlassian.common.client import BaseHttpClient, AuthMode
 from atlassian.tempo.resources import (
     WorklogResource,
@@ -61,6 +62,8 @@ class TempoClient(BaseHttpClient):
         auto_login: bool = True,
         auto_relogin: bool = True,
         auth_mode: AuthMode = "basic",
+        oauth1: Optional[OAuth1Config] = None,
+        trust_env: bool = True,
     ):
         """
         初始化 Tempo 客户端
@@ -72,7 +75,9 @@ class TempoClient(BaseHttpClient):
             timeout: 请求超时时间（秒）
             auto_login: 是否在首次请求时自动登录 (仅 session 模式)
             auto_relogin: 会话过期时是否自动重新登录 (仅 session 模式)
-            auth_mode: 认证模式，"basic" (默认) 或 "session"
+            auth_mode: 认证模式，"basic" (默认)、"session" 或 "oauth1"
+            oauth1: OAuth 1.0a RSA-SHA1 认证配置
+            trust_env: 是否读取系统代理等 HTTPX 环境变量
         """
         # Tempo 可以使用 JIRA 的环境变量作为后备
         import os
@@ -104,6 +109,8 @@ class TempoClient(BaseHttpClient):
             auto_relogin=auto_relogin,
             env_prefix="TEMPO",
             auth_mode=auth_mode,
+            oauth1=oauth1,
+            trust_env=trust_env,
         )
 
         # 初始化资源

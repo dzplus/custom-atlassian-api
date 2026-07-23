@@ -5,6 +5,9 @@ build/
 dist/
 wheels/
 *.egg-info
+.serena
 
 # Virtual environments
 .venv
+tests/*
+!tests/test_confluence_oauth1_demo.py
