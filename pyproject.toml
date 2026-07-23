@@ -9,7 +9,13 @@ dependencies = [
     "pydantic>=2.12.5",
 ]
 
+[project.optional-dependencies]
+oauth = [
+    "authlib>=1.7.2",
+]
+
 [dependency-groups]
 dev = [
+    "authlib>=1.7.2",
     "pytest>=9.0.2",
 ]

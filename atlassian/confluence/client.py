@@ -6,6 +6,7 @@ Confluence Client - Confluence HTTP 客户端
 
 from typing import Optional
 
+from atlassian.common.auth import OAuth1Config
 from atlassian.common.client import BaseHttpClient, AuthMode
 from atlassian.confluence.resources import (
     ContentResource,
@@ -70,6 +71,8 @@ class ConfluenceClient(BaseHttpClient):
         auto_login: bool = True,
         auto_relogin: bool = True,
         auth_mode: AuthMode = "basic",  # Confluence 默认使用 Basic Auth
+        oauth1: Optional[OAuth1Config] = None,
+        trust_env: bool = True,
     ):
         """
         初始化 Confluence 客户端
@@ -81,7 +84,9 @@ class ConfluenceClient(BaseHttpClient):
             timeout: 请求超时时间（秒）
             auto_login: 是否在首次请求时自动登录 (仅 session 模式)
             auto_relogin: 会话过期时是否自动重新登录 (仅 session 模式)
-            auth_mode: 认证模式，"basic" (默认) 或 "session"
+            auth_mode: 认证模式，"basic" (默认)、"session" 或 "oauth1"
+            oauth1: OAuth 1.0a RSA-SHA1 认证配置
+            trust_env: 是否读取系统代理等 HTTPX 环境变量
         """
         super().__init__(
             base_url=base_url,
@@ -92,6 +97,8 @@ class ConfluenceClient(BaseHttpClient):
             auto_relogin=auto_relogin,
             env_prefix="CONFLUENCE",
             auth_mode=auth_mode,
+            oauth1=oauth1,
+            trust_env=trust_env,
         )
 
         # 初始化资源

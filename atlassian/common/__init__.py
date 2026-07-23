@@ -12,12 +12,14 @@ from atlassian.common.exceptions import (
     AtlassianAuthError,
     AtlassianCaptchaError,
     AtlassianSessionExpiredError,
+    AtlassianOAuthError,
     AtlassianAPIError,
     AtlassianNotFoundError,
     AtlassianPermissionError,
 )
 from atlassian.common.client import BaseHttpClient, SessionInfo
 from atlassian.common.base import BaseResource
+from atlassian.common.auth import AtlassianOAuth1Flow, OAuth1Config, OAuth1Token
 
 __all__ = [
     # Exceptions
@@ -25,12 +27,16 @@ __all__ = [
     "AtlassianAuthError",
     "AtlassianCaptchaError",
     "AtlassianSessionExpiredError",
+    "AtlassianOAuthError",
     "AtlassianAPIError",
     "AtlassianNotFoundError",
     "AtlassianPermissionError",
     # Client
     "BaseHttpClient",
     "SessionInfo",
+    "AtlassianOAuth1Flow",
+    "OAuth1Config",
+    "OAuth1Token",
     # Resource
     "BaseResource",
 ]

@@ -15,6 +15,7 @@ from typing import Any, Literal, Optional
 from dataclasses import dataclass
 import httpx
 
+from atlassian.common.auth import OAuth1Config
 from atlassian.common.exceptions import (
     AtlassianAuthError,
     AtlassianCaptchaError,
@@ -27,7 +28,7 @@ from atlassian.common.exceptions import (
 logger = logging.getLogger(__name__)
 
 # 认证模式类型
-AuthMode = Literal["session", "basic"]
+AuthMode = Literal["session", "basic", "oauth1"]
 
 
 @dataclass
@@ -52,9 +53,10 @@ class BaseHttpClient:
     """
     基础 HTTP 客户端
 
-    支持两种认证模式:
+    支持三种认证模式:
     - session: 使用 /rest/auth/1/session 接口进行登录，获取 JSESSIONID cookie
     - basic: 使用 HTTP Basic Auth 认证
+    - oauth1: 使用 Atlassian Application Links OAuth 1.0a RSA-SHA1 签名
 
     用法:
         # Session 认证 (默认)
@@ -64,6 +66,14 @@ class BaseHttpClient:
         # Basic Auth 认证
         async with BaseHttpClient(base_url, username, password, auth_mode="basic") as client:
             result = await client.get_json("/rest/api/2/myself")
+
+        # OAuth 1.0a 认证
+        async with BaseHttpClient(
+            base_url,
+            auth_mode="oauth1",
+            oauth1=oauth1_config,
+        ) as client:
+            result = await client.get_json("/rest/api/content")
     """
 
     AUTH_SESSION_PATH = "/rest/auth/1/session"
@@ -78,6 +88,8 @@ class BaseHttpClient:
         auto_relogin: bool = True,
         env_prefix: str = "",
         auth_mode: AuthMode = "session",
+        oauth1: Optional[OAuth1Config] = None,
+        trust_env: bool = True,
     ):
         """
         初始化 HTTP 客户端
@@ -90,7 +102,9 @@ class BaseHttpClient:
             auto_login: 是否在首次请求时自动登录 (仅 session 模式)
             auto_relogin: 会话过期时是否自动重新登录 (仅 session 模式)
             env_prefix: 环境变量前缀（如 "JIRA", "CONFLUENCE"）
-            auth_mode: 认证模式，"session" 或 "basic"
+            auth_mode: 认证模式，"session"、"basic" 或 "oauth1"
+            oauth1: OAuth 1.0a RSA-SHA1 认证配置
+            trust_env: 是否读取系统代理等 HTTPX 环境变量
         """
         # 环境变量优先级: 参数 > 带前缀环境变量 > 通用环境变量
         self.base_url = (
@@ -114,15 +128,23 @@ class BaseHttpClient:
         self.auto_login = auto_login
         self.auto_relogin = auto_relogin
         self.auth_mode = auth_mode
+        self._oauth1_config = oauth1
+        self.trust_env = trust_env
 
         # 验证必要参数
         if not self.base_url:
             raise ValueError(f"{env_prefix}_URL or ATLASSIAN_URL is required")
-        if not self._username or not self._password:
+        if self.auth_mode not in ("session", "basic", "oauth1"):
+            raise ValueError(f"Unsupported auth_mode: {self.auth_mode}")
+        if self.auth_mode in ("session", "basic") and (
+            not self._username or not self._password
+        ):
             raise ValueError(
                 f"{env_prefix}_USERNAME/{env_prefix}_PASSWORD or "
                 "ATLASSIAN_USERNAME/ATLASSIAN_PASSWORD are required"
             )
+        if self.auth_mode == "oauth1" and self._oauth1_config is None:
+            raise ValueError("oauth1 configuration is required for auth_mode='oauth1'")
 
         # 会话状态
         self._session_info: Optional[SessionInfo] = None
@@ -139,11 +161,15 @@ class BaseHttpClient:
                 auth_header=f"Basic {encoded}",
             )
             self._logged_in = True  # Basic Auth 不需要登录步骤
+        elif self.auth_mode == "oauth1":
+            self._logged_in = True  # OAuth access token 不需要登录步骤
 
     @property
     def is_logged_in(self) -> bool:
         """是否已登录"""
-        return self._logged_in and self._session_info is not None
+        if self.auth_mode == "session":
+            return self._logged_in and self._session_info is not None
+        return self._logged_in
 
     @property
     def session_info(self) -> Optional[SessionInfo]:
@@ -156,6 +182,8 @@ class BaseHttpClient:
             base_url=self.base_url,
             timeout=self.timeout,
             follow_redirects=True,
+            auth=self._get_httpx_auth(),
+            trust_env=self.trust_env,
         )
         # Basic Auth 模式不需要登录
         if self.auth_mode == "session" and self.auto_login:
@@ -180,8 +208,17 @@ class BaseHttpClient:
                 base_url=self.base_url,
                 timeout=self.timeout,
                 follow_redirects=True,
+                auth=self._get_httpx_auth(),
+                trust_env=self.trust_env,
             )
         return self._client
+
+    def _get_httpx_auth(self) -> Any:
+        """获取需要参与完整请求签名的 HTTPX 认证对象。"""
+
+        if self.auth_mode == "oauth1" and self._oauth1_config:
+            return self._oauth1_config.create_httpx_auth()
+        return None
 
     def _get_auth_headers(self) -> dict:
         """获取认证请求头"""
@@ -195,15 +232,15 @@ class BaseHttpClient:
             headers["Cookie"] = f"{self._session_info.session_name}={self._session_info.session_value}"
         return headers
 
-    async def login(self) -> SessionInfo | BasicAuthInfo:
+    async def login(self) -> SessionInfo | BasicAuthInfo | OAuth1Config:
         """
         登录并获取会话
 
         Session 模式: POST /rest/auth/1/session
-        Basic Auth 模式: 验证认证信息
+        Basic Auth / OAuth 1.0a 模式: 返回当前认证配置
 
         Returns:
-            SessionInfo | BasicAuthInfo: 认证信息
+            SessionInfo | BasicAuthInfo | OAuth1Config: 认证信息
 
         Raises:
             AtlassianCaptchaError: 触发了 CAPTCHA 验证
@@ -215,6 +252,15 @@ class BaseHttpClient:
                 logger.info(f"Using Basic Auth for {self.base_url} as {self._username}")
                 return self._basic_auth_info
             raise AtlassianAuthError("Basic Auth info not initialized")
+        if self.auth_mode == "oauth1":
+            if self._oauth1_config:
+                logger.info(
+                    "Using OAuth 1.0a for %s with consumer %s",
+                    self.base_url,
+                    self._oauth1_config.consumer_key,
+                )
+                return self._oauth1_config
+            raise AtlassianAuthError("OAuth 1.0a config not initialized")
 
         client = self._get_client()
 
@@ -328,8 +374,8 @@ class BaseHttpClient:
 
     async def _ensure_logged_in(self) -> None:
         """确保已登录，必要时自动登录"""
-        # Basic Auth 模式总是已登录
-        if self.auth_mode == "basic":
+        # Basic Auth 和 OAuth access token 不需要登录步骤
+        if self.auth_mode in ("basic", "oauth1"):
             return
 
         if not self._logged_in and self.auto_login:
@@ -395,7 +441,11 @@ class BaseHttpClient:
         )
 
         # 检查会话过期，尝试重新登录
-        if response.status_code == 401 and self.auto_relogin:
+        if (
+            response.status_code == 401
+            and self.auth_mode == "session"
+            and self.auto_relogin
+        ):
             logger.warning("Session expired, attempting re-login...")
             self._logged_in = False
             self._session_info = None

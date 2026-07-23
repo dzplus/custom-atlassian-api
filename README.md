@@ -257,6 +257,18 @@ async with ConfluenceClient(**CONFLUENCE_CONFIG) as confluence:
     pass
 ```
 
+#### 方法 4: OAuth 1.0a
+
+Confluence/Jira Server 或 Data Center 可以通过 Application Links 使用 OAuth
+1.0a RSA-SHA1 认证，无需向 SDK 提供用户密码。安装 OAuth 可选依赖：
+
+```bash
+uv add "custom-atlassian-api[oauth]"
+```
+
+管理员配置、首次三段授权、token 持久化及客户端使用方式见
+[OAuth 1.0a 开发者接入指南](docs/OAUTH1_DEVELOPER_GUIDE.md)。
+
 ### 第一个程序
 
 创建 `my_confluence_app.py`:
