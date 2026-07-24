@@ -269,6 +269,11 @@ uv add "custom-atlassian-api[oauth]"
 管理员配置、首次三段授权、token 持久化及客户端使用方式见
 [OAuth 1.0a 开发者接入指南](docs/OAUTH1_DEVELOPER_GUIDE.md)。
 
+可运行示例：
+
+- [Confluence OAuth 1.0a demo](examples/CONFLUENCE_OAUTH1_DEMO.md)
+- [Jira OAuth 1.0a demo](examples/JIRA_OAUTH1_DEMO.md)
+
 ### 第一个程序
 
 创建 `my_confluence_app.py`:

@@ -58,5 +58,10 @@ uv run python -m examples.confluence_oauth1_demo request \
   --api-path '/rest/api/space?limit=1'
 ```
 
+同时使用 Jira 时，请运行独立的
+[`jira_oauth1_demo`](JIRA_OAUTH1_DEMO.md)。Jira token 默认保存到
+`jira-oauth1.json`，不会覆盖这里的 `confluence-oauth1.json`；两个 Demo
+也会校验 token 文件中的 Base URL 和 Consumer Key。
+
 Confluence 的“查看 OAuth Access Tokens”页面会列出完成授权的 demo
 consumer。撤销该条 token 后，`request` 命令应返回认证失败。
