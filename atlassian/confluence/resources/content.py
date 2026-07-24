@@ -237,6 +237,7 @@ class ContentResource(BaseResource):
         status: str = "current",
         version_message: Optional[str] = None,
         minor_edit: bool = False,
+        parent_id: str | None = None,
     ) -> Content:
         """
         更新内容
@@ -255,6 +256,7 @@ class ContentResource(BaseResource):
             status: 状态
             version_message: 版本说明
             minor_edit: 是否为小修改
+            parent_id: 新父页面 ID（可选）
 
         Returns:
             Content: 更新后的内容
@@ -278,6 +280,9 @@ class ContentResource(BaseResource):
 
         if version_message:
             payload["version"]["message"] = version_message
+
+        if parent_id:
+            payload["ancestors"] = [{"id": parent_id}]
 
         data = await self.client.put_json(path, data=payload)
         return Content.model_validate(data)

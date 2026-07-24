@@ -2,10 +2,10 @@ import asyncio
 import os
 from pathlib import Path
 
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
 import httpx
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 from atlassian import (
     AtlassianOAuth1Flow,
@@ -15,11 +15,7 @@ from atlassian import (
     OAuth1Token,
 )
 from atlassian.tempo import TempoClient
-from examples.confluence_oauth1_demo import (
-    DemoSettings,
-    load_token,
-    save_token,
-)
+from examples.oauth1_demo_common import DemoSettings, load_token, save_token
 
 
 def make_private_key() -> str:

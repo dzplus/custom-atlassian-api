@@ -26,10 +26,11 @@ Confluence API 接口测试
 import asyncio
 import argparse
 import sys
-from typing import Optional
+from typing import Any, Optional
 from datetime import datetime
 
 from atlassian.confluence import ConfluenceClient
+from atlassian.confluence.resources.content import ContentResource
 from atlassian.common.exceptions import (
     AtlassianAuthError,
     AtlassianAPIError,
@@ -608,6 +609,55 @@ class ConfluenceAPITest:
         passed = sum(1 for r in self.test_results.values() if r.get("success"))
         total = len(self.test_results)
         print(f"\n总计: {passed}/{total} 通过")
+
+
+class _RecordingClient:
+    """记录请求参数的最小 HTTP 客户端替身。"""
+
+    def __init__(self) -> None:
+        self.path: str | None = None
+        self.payload: dict[str, Any] | None = None
+
+    async def put_json(self, path: str, data: dict[str, Any]) -> dict[str, Any]:
+        self.path = path
+        self.payload = data
+        return {"id": "456", **data}
+
+
+def test_update_includes_ancestors_when_parent_id_is_provided() -> None:
+    client = _RecordingClient()
+    resource = ContentResource(client)
+
+    asyncio.run(
+        resource.update(
+            content_id="456",
+            title="Moved page",
+            body="<p>content</p>",
+            version_number=2,
+            parent_id="789",
+        )
+    )
+
+    assert client.path == "/rest/api/content/456"
+    assert client.payload is not None
+    assert client.payload["ancestors"] == [{"id": "789"}]
+
+
+def test_update_omits_ancestors_when_parent_id_is_not_provided() -> None:
+    client = _RecordingClient()
+    resource = ContentResource(client)
+
+    asyncio.run(
+        resource.update(
+            content_id="456",
+            title="Unmoved page",
+            body="<p>content</p>",
+            version_number=2,
+        )
+    )
+
+    assert client.payload is not None
+    assert "ancestors" not in client.payload
 
 
 async def main():
