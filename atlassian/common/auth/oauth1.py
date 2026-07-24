@@ -2,27 +2,199 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import secrets
+import time
+from collections.abc import Callable, Generator, Mapping
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import parse_qsl, quote, urlencode
 
 import httpx
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 from atlassian.common.exceptions import AtlassianOAuthError
 
+_FORM_CONTENT_TYPE = "application/x-www-form-urlencoded"
+_OAUTH_SIGNATURE_METHOD = "RSA-SHA1"
+_OAUTH_VERSION = "1.0"
 
-def _load_authlib() -> tuple[type[Any], type[Any], type[Exception]]:
-    """Load the optional OAuth dependency only when the feature is used."""
+
+def _percent_encode(value: str) -> str:
+    """Encode an OAuth parameter according to RFC 5849 section 3.6."""
+
+    return quote(value, safe="~-._", encoding="utf-8", errors="strict")
+
+
+def _parse_parameters(
+    value: bytes,
+    *,
+    encoding: str,
+) -> list[tuple[str, str]]:
+    """Decode a query or form body into OAuth parameter pairs."""
+
+    if not value:
+        return []
+    return parse_qsl(
+        value.decode("utf-8"),
+        keep_blank_values=True,
+        encoding=encoding,
+        errors="strict",
+    )
+
+
+def _content_type(request: httpx.Request) -> str:
+    return request.headers.get("Content-Type", "").partition(";")[0].strip().lower()
+
+
+def _normalized_base_url(url: httpx.URL) -> str:
+    """Build the signature base string URI from the exact outgoing URL."""
+
+    scheme = url.scheme.lower()
+    host = url.raw_host.decode("ascii").lower()
+    if ":" in host and not host.startswith("["):
+        host = f"[{host}]"
+
+    port = url.port
+    default_port = (scheme == "http" and port == 80) or (
+        scheme == "https" and port == 443
+    )
+    authority = host if port is None or default_port else f"{host}:{port}"
+
+    raw_path = url.raw_path.split(b"?", 1)[0] or b"/"
+    path = raw_path.decode("ascii")
+    return f"{scheme}://{authority}{path}"
+
+
+def _normalize_parameters(parameters: list[tuple[str, str]]) -> str:
+    """Percent-encode and sort OAuth parameters without losing duplicates."""
+
+    encoded = [
+        (_percent_encode(name), _percent_encode(value))
+        for name, value in parameters
+        if name != "oauth_signature"
+    ]
+    encoded.sort()
+    return "&".join(f"{name}={value}" for name, value in encoded)
+
+
+def _signature_base_string(
+    request: httpx.Request,
+    oauth_parameters: list[tuple[str, str]],
+    body: bytes | None,
+) -> str:
+    """Create the RFC 5849 signature base string for an HTTPX request."""
+
+    # Atlassian Server/Data Center's OAuth provider decodes percent-escaped
+    # query octets as ISO-8859-1 before normalizing the signature parameters.
+    # The REST layer still receives the original UTF-8 URL. Mirroring that
+    # OAuth-only behavior avoids signature_invalid for non-ASCII CQL/JQL.
+    parameters = _parse_parameters(request.url.query, encoding="latin-1")
+    parameters.extend(oauth_parameters)
+
+    if body is not None and _content_type(request) == _FORM_CONTENT_TYPE:
+        parameters.extend(_parse_parameters(body, encoding="utf-8"))
+
+    normalized_parameters = _normalize_parameters(parameters)
+    return "&".join(
+        (
+            _percent_encode(request.method.upper()),
+            _percent_encode(_normalized_base_url(request.url)),
+            _percent_encode(normalized_parameters),
+        )
+    )
+
+
+def _buffered_request_body(request: httpx.Request) -> bytes | None:
+    """Return an already-buffered body without consuming a streaming upload."""
 
     try:
-        from authlib.integrations.base_client.errors import OAuthError
-        from authlib.integrations.httpx_client import AsyncOAuth1Client, OAuth1Auth
-    except ImportError as exc:
-        raise AtlassianOAuthError(
-            "OAuth 1.0a support requires the optional dependency. "
-            'Install it with: pip install "custom-atlassian-api[oauth]"'
-        ) from exc
-    return AsyncOAuth1Client, OAuth1Auth, OAuthError
+        return request.content
+    except httpx.RequestNotRead:
+        return None
+
+
+def _load_rsa_private_key(private_key: str) -> rsa.RSAPrivateKey:
+    try:
+        loaded_key = serialization.load_pem_private_key(
+            private_key.encode("utf-8"),
+            password=None,
+        )
+    except (TypeError, ValueError) as exc:
+        raise AtlassianOAuthError(f"Invalid OAuth RSA private key: {exc}") from exc
+
+    if not isinstance(loaded_key, rsa.RSAPrivateKey):
+        raise AtlassianOAuthError("OAuth private key must be an RSA private key")
+    return loaded_key
+
+
+class _AtlassianOAuth1Auth(httpx.Auth):
+    """HTTPX auth implementation for Atlassian's RSA-SHA1 OAuth provider."""
+
+    def __init__(
+        self,
+        *,
+        consumer_key: str,
+        private_key: str,
+        token: str | None = None,
+        oauth_parameters: Mapping[str, str] | None = None,
+        nonce_factory: Callable[[], str] | None = None,
+        timestamp_factory: Callable[[], str] | None = None,
+    ) -> None:
+        self._consumer_key = consumer_key
+        self._private_key = _load_rsa_private_key(private_key)
+        self._token = token
+        self._extra_oauth_parameters = dict(oauth_parameters or {})
+        self._nonce_factory = nonce_factory or (lambda: secrets.token_urlsafe(24))
+        self._timestamp_factory = timestamp_factory or (lambda: str(int(time.time())))
+
+    def _oauth_parameters(
+        self,
+        request: httpx.Request,
+        body: bytes | None,
+    ) -> list[tuple[str, str]]:
+        parameters = [
+            ("oauth_consumer_key", self._consumer_key),
+            ("oauth_nonce", self._nonce_factory()),
+            ("oauth_signature_method", _OAUTH_SIGNATURE_METHOD),
+            ("oauth_timestamp", self._timestamp_factory()),
+            ("oauth_version", _OAUTH_VERSION),
+        ]
+        if self._token:
+            parameters.append(("oauth_token", self._token))
+        parameters.extend(self._extra_oauth_parameters.items())
+
+        if body and _content_type(request) != _FORM_CONTENT_TYPE:
+            digest = hashlib.sha1(body).digest()
+            parameters.append(
+                ("oauth_body_hash", base64.b64encode(digest).decode("ascii"))
+            )
+        return parameters
+
+    def auth_flow(
+        self,
+        request: httpx.Request,
+    ) -> Generator[httpx.Request, httpx.Response, None]:
+        body = _buffered_request_body(request)
+        oauth_parameters = self._oauth_parameters(request, body)
+
+        base_string = _signature_base_string(request, oauth_parameters, body)
+        signature = self._private_key.sign(
+            base_string.encode("ascii"),
+            padding.PKCS1v15(),
+            hashes.SHA1(),
+        )
+        oauth_parameters.append(
+            ("oauth_signature", base64.b64encode(signature).decode("ascii"))
+        )
+
+        request.headers["Authorization"] = "OAuth " + ", ".join(
+            f'{_percent_encode(name)}="{_percent_encode(value)}"'
+            for name, value in oauth_parameters
+        )
+        yield request
 
 
 @dataclass(frozen=True)
@@ -37,7 +209,7 @@ class OAuth1Token:
             raise ValueError("oauth_token is required")
 
     @classmethod
-    def from_mapping(cls, data: dict[str, Any]) -> "OAuth1Token":
+    def from_mapping(cls, data: Mapping[str, Any]) -> OAuth1Token:
         """Build a token from an OAuth form response."""
 
         return cls(
@@ -78,7 +250,7 @@ class OAuth1Config:
         consumer_key: str,
         private_key: str,
         token: OAuth1Token,
-    ) -> "OAuth1Config":
+    ) -> OAuth1Config:
         """Create request credentials from an exchanged access token."""
 
         return cls(
@@ -88,17 +260,13 @@ class OAuth1Config:
             access_token_secret=token.oauth_token_secret,
         )
 
-    def create_httpx_auth(self) -> Any:
+    def create_httpx_auth(self) -> httpx.Auth:
         """Create an HTTPX auth object that signs every outgoing request."""
 
-        _, oauth1_auth, _ = _load_authlib()
-        return oauth1_auth(
-            client_id=self.consumer_key,
+        return _AtlassianOAuth1Auth(
+            consumer_key=self.consumer_key,
+            private_key=self.private_key,
             token=self.access_token,
-            token_secret=self.access_token_secret,
-            rsa_key=self.private_key,
-            signature_method="RSA-SHA1",
-            signature_type="HEADER",
         )
 
 
@@ -150,37 +318,62 @@ class AtlassianOAuth1Flow:
     def access_token_url(self) -> str:
         return f"{self.base_url}{self.ACCESS_TOKEN_PATH}"
 
-    def _create_client(
+    def _create_auth(
         self,
         *,
         token: OAuth1Token | None = None,
         verifier: str | None = None,
-    ) -> Any:
-        async_oauth1_client, _, _ = _load_authlib()
-        return async_oauth1_client(
-            client_id=self.consumer_key,
+    ) -> httpx.Auth:
+        oauth_parameters = (
+            {"oauth_verifier": verifier}
+            if verifier is not None
+            else {"oauth_callback": self.callback_uri}
+        )
+        return _AtlassianOAuth1Auth(
+            consumer_key=self.consumer_key,
+            private_key=self.private_key,
             token=token.oauth_token if token else None,
-            token_secret=token.oauth_token_secret if token else None,
-            redirect_uri=self.callback_uri,
-            verifier=verifier,
-            rsa_key=self.private_key,
-            signature_method="RSA-SHA1",
-            signature_type="HEADER",
+            oauth_parameters=oauth_parameters,
+        )
+
+    async def _fetch_token(
+        self,
+        url: str,
+        *,
+        token: OAuth1Token | None = None,
+        verifier: str | None = None,
+    ) -> OAuth1Token:
+        auth = self._create_auth(token=token, verifier=verifier)
+        async with httpx.AsyncClient(
+            auth=auth,
             timeout=self.timeout,
             follow_redirects=True,
             trust_env=self.trust_env,
             transport=self.transport,
+        ) as client:
+            response = await client.post(url)
+
+        data = dict(
+            parse_qsl(
+                response.text,
+                keep_blank_values=True,
+                encoding="utf-8",
+                errors="strict",
+            )
         )
+        if oauth_problem := data.get("oauth_problem"):
+            raise AtlassianOAuthError(f"Atlassian OAuth error: {oauth_problem}")
+        response.raise_for_status()
+        return OAuth1Token.from_mapping(data)
 
     async def fetch_request_token(self) -> OAuth1Token:
         """Obtain a short-lived request token from Atlassian."""
 
-        _, _, oauth_error = _load_authlib()
         try:
-            async with self._create_client() as client:
-                data = await client.fetch_request_token(self.request_token_url)
-            return OAuth1Token.from_mapping(data)
-        except (httpx.HTTPError, oauth_error, ValueError) as exc:
+            return await self._fetch_token(self.request_token_url)
+        except AtlassianOAuthError:
+            raise
+        except (httpx.HTTPError, UnicodeError, ValueError) as exc:
             raise AtlassianOAuthError(
                 f"Failed to fetch OAuth request token: {exc}"
             ) from exc
@@ -201,18 +394,15 @@ class AtlassianOAuth1Flow:
 
         if not verifier:
             raise ValueError("verifier is required")
-        _, _, oauth_error = _load_authlib()
         try:
-            async with self._create_client(
+            return await self._fetch_token(
+                self.access_token_url,
                 token=request_token,
                 verifier=verifier,
-            ) as client:
-                data = await client.fetch_access_token(
-                    self.access_token_url,
-                    verifier=verifier,
-                )
-            return OAuth1Token.from_mapping(data)
-        except (httpx.HTTPError, oauth_error, ValueError) as exc:
+            )
+        except AtlassianOAuthError:
+            raise
+        except (httpx.HTTPError, UnicodeError, ValueError) as exc:
             raise AtlassianOAuthError(
                 f"Failed to exchange OAuth access token: {exc}"
             ) from exc

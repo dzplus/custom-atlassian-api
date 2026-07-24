@@ -11,20 +11,24 @@ Atlassian 用户名和密码。
 > Confluence OAuth 2.0 Provider 从 7.17 开始提供，Jira OAuth 2.0 Provider
 > 从 8.22 开始提供，它们不是本文描述的协议。
 
-## 1. 安装 OAuth 支持
+## 1. 安装
 
-OAuth 是可选依赖。Basic 和 Session 用户不需要安装 RSA 加密依赖。
+OAuth 支持已经包含在 SDK 中，不需要安装 OAuth 框架或额外依赖：
 
 ```bash
-uv add "custom-atlassian-api[oauth]"
+uv add custom-atlassian-api
 ```
 
 从 Git 仓库安装时：
 
 ```bash
 uv add \
-  "custom-atlassian-api[oauth] @ git+https://github.com/dzplus/custom-atlassian-api.git"
+  "custom-atlassian-api @ git+https://github.com/dzplus/custom-atlassian-api.git"
 ```
+
+SDK 自行实现 Atlassian OAuth 1.0a 的 RSA-SHA1 签名、request token 和 access
+token 交换，不依赖 Authlib、oauthlib 等 OAuth 框架。为了兼容已有部署，旧的
+`custom-atlassian-api[oauth]` 安装命令仍可使用，但 `oauth` extra 现在为空。
 
 ## 2. 生成 RSA 密钥
 
@@ -208,6 +212,10 @@ oauth1 = OAuth1Config(
 
 相同配置也可以传给 `JiraClient` 和 `TempoClient`。
 
+业务接口的调用方式不会因认证模式而变化。`basic`、`session` 和 `oauth1`
+只决定 HTTP 请求底层如何认证，下游不需要为 OAuth 改写 CQL、JQL、JSON
+payload 或资源 API 调用。
+
 ### 5.2 Jira
 
 Jira 必须使用从 Jira 自己换取的 access token，不能使用 Confluence
@@ -311,6 +319,23 @@ except AtlassianOAuthError as exc:
 
 反向代理环境必须保证 SDK 使用的 `base_url` 与 Jira 或 Confluence 对外公布的
 Base URL 一致，并保证客户端和服务器时钟同步。
+
+### Server/Data Center 请求兼容
+
+SDK 的签名器专门兼容 Atlassian Server/Data Center：
+
+- 非 ASCII query（例如中文 CQL/JQL）仍通过 `params` 正常传入。SDK 会保留
+  HTTP URL 中正确的 UTF-8 编码，同时按 Atlassian OAuth 校验层的
+  ISO-8859-1 query 规范化行为生成签名。调用方不要手动二次编码。
+- JSON POST/PUT 会保留原始请求体，并在 Authorization Header 中加入基于
+  请求原始字节计算的 `oauth_body_hash`。
+- `application/x-www-form-urlencoded` 请求会把表单字段纳入 OAuth 参数签名。
+- 重复 query/form 参数不会被合并或丢失。
+- 流式上传不会被签名器提前读取或清空；未缓冲的流式 body 不添加
+  `oauth_body_hash`。
+
+从使用 OAuth 框架签名的旧 SDK 版本升级时，现有 Application Link、Consumer
+Key、RSA 密钥和 access token 都可以继续使用，无需让用户重新授权。
 
 ## 9. 可运行 demo
 

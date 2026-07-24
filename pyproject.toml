@@ -5,17 +5,17 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "cryptography>=44.0.0",
     "httpx>=0.28.1",
     "pydantic>=2.12.5",
 ]
 
 [project.optional-dependencies]
-oauth = [
-    "authlib>=1.7.2",
-]
+# Kept as an empty compatibility extra for existing installation commands.
+# OAuth 1.0a support is now built in and no longer depends on an OAuth framework.
+oauth = []
 
 [dependency-groups]
 dev = [
-    "authlib>=1.7.2",
     "pytest>=9.0.2",
 ]
