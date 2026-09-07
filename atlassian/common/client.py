@@ -4,6 +4,7 @@ Base HTTP Client - 基础 HTTP 客户端
 提供所有 Atlassian 产品 API 客户端的公共 HTTP 功能:
 - Session 认证 (Cookie-based)
 - Basic Auth 认证 (备选)
+- Bearer / PAT 认证 (Jira / Confluence Server 7.x+)
 - 自动重登录
 - 通用 HTTP 方法
 """
@@ -28,7 +29,7 @@ from atlassian.common.exceptions import (
 logger = logging.getLogger(__name__)
 
 # 认证模式类型
-AuthMode = Literal["session", "basic", "oauth1"]
+AuthMode = Literal["session", "basic", "oauth1", "bearer"]
 
 
 @dataclass
@@ -47,6 +48,12 @@ class BasicAuthInfo:
     """Basic Auth 信息"""
     username: str
     auth_header: str  # Base64 编码的认证头
+
+
+@dataclass
+class BearerAuthInfo:
+    """Bearer / PAT 认证信息"""
+    auth_header: str
 
 
 class BaseHttpClient:
@@ -90,6 +97,9 @@ class BaseHttpClient:
         auth_mode: AuthMode = "session",
         oauth1: Optional[OAuth1Config] = None,
         trust_env: bool = True,
+        token: Optional[str] = None,
+        verify: bool | str = True,
+        transport: Optional[httpx.AsyncBaseTransport] = None,
     ):
         """
         初始化 HTTP 客户端
@@ -105,6 +115,10 @@ class BaseHttpClient:
             auth_mode: 认证模式，"session"、"basic" 或 "oauth1"
             oauth1: OAuth 1.0a RSA-SHA1 认证配置
             trust_env: 是否读取系统代理等 HTTPX 环境变量
+            token: Personal Access Token，默认从 {env_prefix}_TOKEN /
+                {env_prefix}_PAT_TOKEN 环境变量读取 (仅 bearer 模式)
+            verify: TLS 校验开关或 CA bundle 路径，内网自签证书传 False
+            transport: 自定义 httpx 传输层，单测可传 httpx.MockTransport
         """
         # 环境变量优先级: 参数 > 带前缀环境变量 > 通用环境变量
         self.base_url = (
@@ -124,17 +138,27 @@ class BaseHttpClient:
             or os.getenv("ATLASSIAN_PASSWORD")
         )
 
+        self._token = (
+            token
+            or os.getenv(f"{env_prefix}_TOKEN")
+            or os.getenv(f"{env_prefix}_PAT_TOKEN")
+            or os.getenv("ATLASSIAN_TOKEN")
+            or os.getenv("ATLASSIAN_PAT_TOKEN")
+        )
+
         self.timeout = timeout
         self.auto_login = auto_login
         self.auto_relogin = auto_relogin
         self.auth_mode = auth_mode
         self._oauth1_config = oauth1
         self.trust_env = trust_env
+        self.verify = verify
+        self._transport = transport
 
         # 验证必要参数
         if not self.base_url:
             raise ValueError(f"{env_prefix}_URL or ATLASSIAN_URL is required")
-        if self.auth_mode not in ("session", "basic", "oauth1"):
+        if self.auth_mode not in ("session", "basic", "oauth1", "bearer"):
             raise ValueError(f"Unsupported auth_mode: {self.auth_mode}")
         if self.auth_mode in ("session", "basic") and (
             not self._username or not self._password
@@ -145,10 +169,17 @@ class BaseHttpClient:
             )
         if self.auth_mode == "oauth1" and self._oauth1_config is None:
             raise ValueError("oauth1 configuration is required for auth_mode='oauth1'")
+        if self.auth_mode == "bearer" and not self._token:
+            raise ValueError(
+                f"{env_prefix}_TOKEN/{env_prefix}_PAT_TOKEN or "
+                "ATLASSIAN_TOKEN/ATLASSIAN_PAT_TOKEN is required "
+                "for auth_mode='bearer'"
+            )
 
         # 会话状态
         self._session_info: Optional[SessionInfo] = None
         self._basic_auth_info: Optional[BasicAuthInfo] = None
+        self._bearer_auth_info: Optional[BearerAuthInfo] = None
         self._client: Optional[httpx.AsyncClient] = None
         self._logged_in: bool = False
 
@@ -163,6 +194,11 @@ class BaseHttpClient:
             self._logged_in = True  # Basic Auth 不需要登录步骤
         elif self.auth_mode == "oauth1":
             self._logged_in = True  # OAuth access token 不需要登录步骤
+        elif self.auth_mode == "bearer":
+            self._bearer_auth_info = BearerAuthInfo(
+                auth_header=f"Bearer {self._token}",
+            )
+            self._logged_in = True  # PAT 不需要登录步骤
 
     @property
     def is_logged_in(self) -> bool:
@@ -178,13 +214,7 @@ class BaseHttpClient:
 
     async def __aenter__(self) -> "BaseHttpClient":
         """异步上下文管理器入口"""
-        self._client = httpx.AsyncClient(
-            base_url=self.base_url,
-            timeout=self.timeout,
-            follow_redirects=True,
-            auth=self._get_httpx_auth(),
-            trust_env=self.trust_env,
-        )
+        self._get_client()
         # Basic Auth 模式不需要登录
         if self.auth_mode == "session" and self.auto_login:
             await self.login()
@@ -210,6 +240,8 @@ class BaseHttpClient:
                 follow_redirects=True,
                 auth=self._get_httpx_auth(),
                 trust_env=self.trust_env,
+                verify=self.verify,
+                transport=self._transport,
             )
         return self._client
 
@@ -228,19 +260,21 @@ class BaseHttpClient:
         }
         if self.auth_mode == "basic" and self._basic_auth_info:
             headers["Authorization"] = self._basic_auth_info.auth_header
+        elif self.auth_mode == "bearer" and self._bearer_auth_info:
+            headers["Authorization"] = self._bearer_auth_info.auth_header
         elif self._session_info:
             headers["Cookie"] = f"{self._session_info.session_name}={self._session_info.session_value}"
         return headers
 
-    async def login(self) -> SessionInfo | BasicAuthInfo | OAuth1Config:
+    async def login(self) -> SessionInfo | BasicAuthInfo | BearerAuthInfo | OAuth1Config:
         """
         登录并获取会话
 
         Session 模式: POST /rest/auth/1/session
-        Basic Auth / OAuth 1.0a 模式: 返回当前认证配置
+        Basic Auth / Bearer / OAuth 1.0a 模式: 返回当前认证配置
 
         Returns:
-            SessionInfo | BasicAuthInfo | OAuth1Config: 认证信息
+            SessionInfo | BasicAuthInfo | BearerAuthInfo | OAuth1Config: 认证信息
 
         Raises:
             AtlassianCaptchaError: 触发了 CAPTCHA 验证
@@ -252,6 +286,11 @@ class BaseHttpClient:
                 logger.info(f"Using Basic Auth for {self.base_url} as {self._username}")
                 return self._basic_auth_info
             raise AtlassianAuthError("Basic Auth info not initialized")
+        if self.auth_mode == "bearer":
+            if self._bearer_auth_info:
+                logger.info("Using Bearer/PAT auth for %s", self.base_url)
+                return self._bearer_auth_info
+            raise AtlassianAuthError("Bearer token not initialized")
         if self.auth_mode == "oauth1":
             if self._oauth1_config:
                 logger.info(
@@ -428,15 +467,25 @@ class BaseHttpClient:
 
         client = self._get_client()
 
-        # 合并请求头
-        headers = self._get_auth_headers()
-        if "headers" in kwargs:
-            headers.update(kwargs.pop("headers"))
+        extra_headers = kwargs.pop("headers", None) or {}
+        # multipart / 表单请求的 Content-Type 必须由 httpx 生成（含 boundary）：
+        # 下发写死的 application/json 会让 httpx 跳过生成，服务端解析不了请求体。
+        # 调用方显式指定 Content-Type 时以调用方为准。
+        drop_content_type = (
+            kwargs.get("files") is not None or kwargs.get("data") is not None
+        ) and not any(key.lower() == "content-type" for key in extra_headers)
+
+        def build_headers() -> dict:
+            headers = self._get_auth_headers()
+            if drop_content_type:
+                headers.pop("Content-Type", None)
+            headers.update(extra_headers)
+            return headers
 
         response = await client.request(
             method,
             path,
-            headers=headers,
+            headers=build_headers(),
             **kwargs,
         )
 
@@ -452,14 +501,10 @@ class BaseHttpClient:
             await self.login()
 
             # 重新发送请求
-            headers = self._get_auth_headers()
-            if "headers" in kwargs:
-                headers.update(kwargs.get("headers", {}))
-
             response = await client.request(
                 method,
                 path,
-                headers=headers,
+                headers=build_headers(),
                 **kwargs,
             )
 

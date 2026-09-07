@@ -14,3 +14,4 @@ tests/*
 !tests/test_jira_oauth1_demo.py
 !tests/test_oauth1_signing.py
 !tests/test_confluence_comments_likes.py
+!tests/test_common_http.py
