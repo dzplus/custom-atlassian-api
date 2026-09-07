@@ -20,6 +20,7 @@ class SearchResults(BaseModel):
     issues: list[Issue]
     expand: Optional[str] = None
     names: Optional[dict[str, str]] = None
-    schema: Optional[dict] = None
+    # 字段名避开 BaseModel.schema，用 alias 保持线上 JSON 的 schema 键不变
+    schema_: Optional[dict] = Field(default=None, alias="schema")
 
     model_config = {"populate_by_name": True}
