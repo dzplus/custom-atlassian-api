@@ -12,6 +12,7 @@ GET    /rest/api/content/{id}/child                   - 获取子内容
 GET    /rest/api/content/{id}/child/{type}            - 获取指定类型子内容
 GET    /rest/api/content/{id}/child/attachment        - 获取附件
 POST   /rest/api/content/{id}/child/attachment        - 上传附件
+GET    <attachment._links.download>                   - 下载附件二进制
 GET    /rest/api/content/{id}/child/comment           - 获取评论
 POST   /rest/api/content (type=comment)               - 添加评论 / 回复评论
 
@@ -39,6 +40,9 @@ GET    /rest/api/content/{id}/restriction/byOperation - 获取限制
 import time
 from typing import Any, Optional
 from pathlib import Path
+from urllib.parse import urlparse
+
+import httpx
 
 from atlassian.common.base import BaseResource
 from atlassian.common.exceptions import AtlassianNotFoundError
@@ -97,6 +101,38 @@ class ContentResource(BaseResource):
         Returns:
             ContentList: 内容列表
         """
+        return ContentList.model_validate(
+            await self.get_all_raw(
+                type=type,
+                space_key=space_key,
+                title=title,
+                status=status,
+                posting_day=posting_day,
+                expand=expand,
+                start=start,
+                limit=limit,
+            )
+        )
+
+    async def get_all_raw(
+        self,
+        type: Optional[str] = None,
+        space_key: Optional[str] = None,
+        title: Optional[str] = None,
+        status: Optional[str] = None,
+        posting_day: Optional[str] = None,
+        expand: Optional[str] = None,
+        start: int = 0,
+        limit: int = 25,
+    ) -> dict:
+        """
+        获取内容列表（原始 JSON）
+
+        参数与 get_all 相同，区别是不做模型校验，直接返回服务端 JSON。
+
+        Returns:
+            dict: 原始 JSON 响应
+        """
         params: dict[str, Any] = {"start": start, "limit": limit}
         if type:
             params["type"] = type
@@ -111,8 +147,7 @@ class ContentResource(BaseResource):
         if expand:
             params["expand"] = expand
 
-        data = await self.client.get_json(self.BASE_PATH, params=params)
-        return ContentList.model_validate(data)
+        return await self.client.get_json(self.BASE_PATH, params=params)
 
     async def get(
         self,
@@ -353,6 +388,32 @@ class ContentResource(BaseResource):
         Returns:
             ContentList: 搜索结果
         """
+        return ContentList.model_validate(
+            await self.search_raw(
+                cql=cql,
+                cql_context=cql_context,
+                expand=expand,
+                start=start,
+                limit=limit,
+            )
+        )
+
+    async def search_raw(
+        self,
+        cql: str,
+        cql_context: Optional[str] = None,
+        expand: Optional[str] = None,
+        start: int = 0,
+        limit: int = 25,
+    ) -> dict:
+        """
+        获取CQL 搜索结果（原始 JSON）
+
+        参数与 search 相同，区别是不做模型校验，直接返回服务端 JSON。
+
+        Returns:
+            dict: 原始 JSON 响应
+        """
         params: dict[str, Any] = {
             "cql": cql,
             "start": start,
@@ -363,8 +424,7 @@ class ContentResource(BaseResource):
         if expand:
             params["expand"] = expand
 
-        data = await self.client.get_json(f"{self.BASE_PATH}/search", params=params)
-        return ContentList.model_validate(data)
+        return await self.client.get_json(f"{self.BASE_PATH}/search", params=params)
 
     # ========== Children ==========
 
@@ -419,13 +479,38 @@ class ContentResource(BaseResource):
         Returns:
             ContentList: 子内容列表
         """
+        return ContentList.model_validate(
+            await self.get_children_by_type_raw(
+                content_id=content_id,
+                child_type=child_type,
+                expand=expand,
+                start=start,
+                limit=limit,
+            )
+        )
+
+    async def get_children_by_type_raw(
+        self,
+        content_id: str,
+        child_type: str,
+        expand: Optional[str] = None,
+        start: int = 0,
+        limit: int = 25,
+    ) -> dict:
+        """
+        获取指定类型的子内容（原始 JSON）
+
+        参数与 get_children_by_type 相同，区别是不做模型校验，直接返回服务端 JSON。
+
+        Returns:
+            dict: 原始 JSON 响应
+        """
         path = f"{self.BASE_PATH}/{content_id}/child/{child_type}"
         params: dict[str, Any] = {"start": start, "limit": limit}
         if expand:
             params["expand"] = expand
 
-        data = await self.client.get_json(path, params=params)
-        return ContentList.model_validate(data)
+        return await self.client.get_json(path, params=params)
 
     # ========== Attachments ==========
 
@@ -454,6 +539,34 @@ class ContentResource(BaseResource):
         Returns:
             AttachmentList: 附件列表
         """
+        return AttachmentList.model_validate(
+            await self.get_attachments_raw(
+                content_id=content_id,
+                expand=expand,
+                start=start,
+                limit=limit,
+                filename=filename,
+                media_type=media_type,
+            )
+        )
+
+    async def get_attachments_raw(
+        self,
+        content_id: str,
+        expand: Optional[str] = None,
+        start: int = 0,
+        limit: int = 25,
+        filename: Optional[str] = None,
+        media_type: Optional[str] = None,
+    ) -> dict:
+        """
+        获取附件列表（原始 JSON）
+
+        参数与 get_attachments 相同，区别是不做模型校验，直接返回服务端 JSON。
+
+        Returns:
+            dict: 原始 JSON 响应
+        """
         path = f"{self.BASE_PATH}/{content_id}/child/attachment"
         params: dict[str, Any] = {"start": start, "limit": limit}
         if expand:
@@ -463,8 +576,7 @@ class ContentResource(BaseResource):
         if media_type:
             params["mediaType"] = media_type
 
-        data = await self.client.get_json(path, params=params)
-        return AttachmentList.model_validate(data)
+        return await self.client.get_json(path, params=params)
 
     async def add_attachment(
         self,
@@ -569,6 +681,65 @@ class ContentResource(BaseResource):
 
         return AttachmentList.model_validate(result)
 
+    async def download_attachment(self, attachment_id: str) -> bytes:
+        """
+        下载附件内容
+
+        先读附件元数据拿 _links.download，再取回二进制。
+
+        Args:
+            attachment_id: 附件 ID
+
+        Returns:
+            bytes: 附件内容
+
+        Raises:
+            ValueError: 该附件没有下载链接
+        """
+        data = await self.get_raw(attachment_id)
+        links = data.get("_links") or {}
+        url = links.get("download")
+        if not url:
+            raise ValueError(f"Attachment {attachment_id} has no download link")
+
+        return await self.download_attachment_by_url(url)
+
+    async def download_attachment_by_url(self, url: str) -> bytes:
+        """
+        通过下载链接取回附件内容
+
+        _links.download 通常是站内相对路径，也可能被配置成外部存储的绝对地址。
+        只有同源链接才带 Confluence 凭据请求，跨域链接走匿名连接，避免凭据外泄。
+
+        Args:
+            url: 附件下载链接（相对路径或绝对 URL）
+
+        Returns:
+            bytes: 附件内容
+        """
+        if self._is_same_origin(url):
+            response = await self.client.get(url, headers={"Accept": "*/*"})
+        else:
+            async with httpx.AsyncClient(
+                timeout=self.client.timeout,
+                follow_redirects=True,
+                trust_env=self.client.trust_env,
+                verify=self.client.verify,
+            ) as anonymous:
+                response = await anonymous.get(url)
+
+        response.raise_for_status()
+        return response.content
+
+    def _is_same_origin(self, url: str) -> bool:
+        """下载链接是否指向当前 Confluence 实例"""
+        parsed = urlparse(url)
+        if not parsed.scheme and not parsed.netloc:
+            return True
+
+        base = urlparse(self.client.base_url)
+        return (parsed.scheme, parsed.netloc) == (base.scheme, base.netloc)
+
     # ========== Comments ==========
 
     async def get_comments(
@@ -596,6 +767,34 @@ class ContentResource(BaseResource):
         Returns:
             CommentList: 评论列表
         """
+        return CommentList.model_validate(
+            await self.get_comments_raw(
+                content_id=content_id,
+                expand=expand,
+                start=start,
+                limit=limit,
+                location=location,
+                depth=depth,
+            )
+        )
+
+    async def get_comments_raw(
+        self,
+        content_id: str,
+        expand: Optional[str] = None,
+        start: int = 0,
+        limit: int = 25,
+        location: Optional[str] = None,
+        depth: Optional[str] = None,
+    ) -> dict:
+        """
+        获取评论列表（原始 JSON）
+
+        参数与 get_comments 相同，区别是不做模型校验，直接返回服务端 JSON。
+
+        Returns:
+            dict: 原始 JSON 响应
+        """
         path = f"{self.BASE_PATH}/{content_id}/child/comment"
         params: dict[str, Any] = {"start": start, "limit": limit}
         if expand:
@@ -605,8 +804,7 @@ class ContentResource(BaseResource):
         if depth:
             params["depth"] = depth
 
-        data = await self.client.get_json(path, params=params)
-        return CommentList.model_validate(data)
+        return await self.client.get_json(path, params=params)
 
     # ========== Comments (写) ==========
 
@@ -898,13 +1096,38 @@ class ContentResource(BaseResource):
         Returns:
             ContentList: 后代内容列表
         """
+        return ContentList.model_validate(
+            await self.get_descendants_by_type_raw(
+                content_id=content_id,
+                descendant_type=descendant_type,
+                expand=expand,
+                start=start,
+                limit=limit,
+            )
+        )
+
+    async def get_descendants_by_type_raw(
+        self,
+        content_id: str,
+        descendant_type: str,
+        expand: Optional[str] = None,
+        start: int = 0,
+        limit: int = 25,
+    ) -> dict:
+        """
+        获取指定类型的后代内容（原始 JSON）
+
+        参数与 get_descendants_by_type 相同，区别是不做模型校验，直接返回服务端 JSON。
+
+        Returns:
+            dict: 原始 JSON 响应
+        """
         path = f"{self.BASE_PATH}/{content_id}/descendant/{descendant_type}"
         params: dict[str, Any] = {"start": start, "limit": limit}
         if expand:
             params["expand"] = expand
 
-        data = await self.client.get_json(path, params=params)
-        return ContentList.model_validate(data)
+        return await self.client.get_json(path, params=params)
 
     # ========== Properties ==========
 
@@ -929,13 +1152,36 @@ class ContentResource(BaseResource):
         Returns:
             ContentPropertyList: 属性列表
         """
+        return ContentPropertyList.model_validate(
+            await self.get_properties_raw(
+                content_id=content_id,
+                expand=expand,
+                start=start,
+                limit=limit,
+            )
+        )
+
+    async def get_properties_raw(
+        self,
+        content_id: str,
+        expand: Optional[str] = None,
+        start: int = 0,
+        limit: int = 25,
+    ) -> dict:
+        """
+        获取属性列表（原始 JSON）
+
+        参数与 get_properties 相同，区别是不做模型校验，直接返回服务端 JSON。
+
+        Returns:
+            dict: 原始 JSON 响应
+        """
         path = f"{self.BASE_PATH}/{content_id}/property"
         params: dict[str, Any] = {"start": start, "limit": limit}
         if expand:
             params["expand"] = expand
 
-        data = await self.client.get_json(path, params=params)
-        return ContentPropertyList.model_validate(data)
+        return await self.client.get_json(path, params=params)
 
     async def get_property(
         self,
@@ -1057,13 +1303,36 @@ class ContentResource(BaseResource):
         Returns:
             ContentLabelList: 标签列表
         """
+        return ContentLabelList.model_validate(
+            await self.get_labels_raw(
+                content_id=content_id,
+                prefix=prefix,
+                start=start,
+                limit=limit,
+            )
+        )
+
+    async def get_labels_raw(
+        self,
+        content_id: str,
+        prefix: Optional[str] = None,
+        start: int = 0,
+        limit: int = 25,
+    ) -> dict:
+        """
+        获取标签列表（原始 JSON）
+
+        参数与 get_labels 相同，区别是不做模型校验，直接返回服务端 JSON。
+
+        Returns:
+            dict: 原始 JSON 响应
+        """
         path = f"{self.BASE_PATH}/{content_id}/label"
         params: dict[str, Any] = {"start": start, "limit": limit}
         if prefix:
             params["prefix"] = prefix
 
-        data = await self.client.get_json(path, params=params)
-        return ContentLabelList.model_validate(data)
+        return await self.client.get_json(path, params=params)
 
     async def add_labels(
         self,

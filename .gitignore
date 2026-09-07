@@ -15,3 +15,4 @@ tests/*
 !tests/test_oauth1_signing.py
 !tests/test_confluence_comments_likes.py
 !tests/test_common_http.py
+!tests/test_confluence_attachments_and_raw.py
