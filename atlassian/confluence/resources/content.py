@@ -13,6 +13,12 @@ GET    /rest/api/content/{id}/child/{type}            - 获取指定类型子内
 GET    /rest/api/content/{id}/child/attachment        - 获取附件
 POST   /rest/api/content/{id}/child/attachment        - 上传附件
 GET    /rest/api/content/{id}/child/comment           - 获取评论
+POST   /rest/api/content (type=comment)               - 添加评论 / 回复评论
+
+GET    /rest/inlinecomments/1.0/comments              - 获取划线批注（插件格式）
+POST   /rest/inlinecomments/1.0/comments              - 添加划线批注
+PUT    /rest/inlinecomments/1.0/comments/{id}/resolve/{bool}/dangling/{bool}
+                                                      - 解决 / 取消解决划线批注
 
 GET    /rest/api/content/{id}/descendant              - 获取所有后代
 GET    /rest/api/content/{id}/descendant/{type}       - 获取指定类型后代
@@ -30,10 +36,12 @@ DELETE /rest/api/content/{id}/label/{label}           - 删除标签
 GET    /rest/api/content/{id}/restriction/byOperation - 获取限制
 """
 
+import time
 from typing import Any, Optional
 from pathlib import Path
 
 from atlassian.common.base import BaseResource
+from atlassian.common.exceptions import AtlassianNotFoundError
 from atlassian.confluence.models.content import (
     Content,
     ContentList,
@@ -56,6 +64,7 @@ class ContentResource(BaseResource):
     """
 
     BASE_PATH = "/rest/api/content"
+    INLINE_COMMENT_PATH = "/rest/inlinecomments/1.0/comments"
 
     # ========== Content CRUD ==========
 
@@ -598,6 +607,247 @@ class ContentResource(BaseResource):
 
         data = await self.client.get_json(path, params=params)
         return CommentList.model_validate(data)
+
+    # ========== Comments (写) ==========
+
+    async def add_comment(
+        self,
+        content_id: str,
+        body: str,
+        body_format: str = "storage",
+        container_type: str = "page",
+    ) -> Comment:
+        """
+        添加底部评论 (footer comment)
+
+        POST /rest/api/content  (type=comment)
+
+        Args:
+            content_id: 被评论的内容 ID（页面 / 博客）
+            body: 评论正文
+            body_format: 正文格式 (storage, wiki, editor, editor2)
+            container_type: 容器类型 (page, blogpost)
+
+        Returns:
+            Comment: 创建的评论
+        """
+        payload: dict[str, Any] = {
+            "type": "comment",
+            "container": {"id": str(content_id), "type": container_type},
+            "body": {
+                body_format: {
+                    "value": body,
+                    "representation": body_format,
+                }
+            },
+        }
+
+        data = await self.client.post_json(self.BASE_PATH, data=payload)
+        return Comment.model_validate(data)
+
+    async def reply_to_comment(
+        self,
+        comment_id: str,
+        body: str,
+        container_id: str,
+        body_format: str = "storage",
+        container_type: str = "page",
+    ) -> Comment:
+        """
+        回复评论
+
+        POST /rest/api/content  (type=comment, ancestors 指向父评论)
+
+        底部评论与划线批注的回复都走这个接口: container 仍指向页面，
+        ancestors 指向被回复的评论 / 批注 ID。
+
+        Args:
+            comment_id: 被回复的评论 / 划线批注 ID
+            body: 回复正文
+            container_id: 评论所在内容（页面）的 ID
+            body_format: 正文格式 (storage, wiki, editor, editor2)
+            container_type: 容器类型 (page, blogpost)
+
+        Returns:
+            Comment: 创建的回复
+        """
+        payload: dict[str, Any] = {
+            "type": "comment",
+            "container": {"id": str(container_id), "type": container_type},
+            "ancestors": [{"id": str(comment_id), "type": "comment"}],
+            "body": {
+                body_format: {
+                    "value": body,
+                    "representation": body_format,
+                }
+            },
+        }
+
+        data = await self.client.post_json(self.BASE_PATH, data=payload)
+        return Comment.model_validate(data)
+
+    # ========== Inline Comments (划线批注) ==========
+
+    async def get_inline_comments(
+        self,
+        content_id: str,
+        expand: Optional[str] = None,
+        start: int = 0,
+        limit: int = 25,
+    ) -> CommentList:
+        """
+        获取划线批注列表
+
+        GET /rest/api/content/{id}/child/comment?location=inline
+
+        已解决的批注同样会返回，解决状态从 expand="extensions.resolution" 取。
+
+        Args:
+            content_id: 内容 ID
+            expand: 展开的字段，取解决状态传 "extensions.resolution"
+            start: 起始位置
+            limit: 返回数量
+
+        Returns:
+            CommentList: 划线批注列表
+        """
+        return await self.get_comments(
+            content_id,
+            expand=expand,
+            start=start,
+            limit=limit,
+            location="inline",
+        )
+
+    async def get_inline_comments_raw(self, content_id: str) -> list[dict]:
+        """
+        获取划线批注列表（inline comments 插件格式）
+
+        GET /rest/inlinecomments/1.0/comments?containerId={id}
+
+        与 get_inline_comments 的区别是走插件命名空间，返回带 markerRef、
+        originalSelection、resolveProperties 等 storage 格式没有的字段，
+        且 id 是 int。resolve_inline_comment 需要这份原始对象。
+
+        Args:
+            content_id: 内容 ID
+
+        Returns:
+            list[dict]: 批注原始对象列表
+        """
+        data = await self.client.get_json(
+            self.INLINE_COMMENT_PATH,
+            params={"containerId": content_id},
+        )
+        return data if isinstance(data, list) else []
+
+    async def add_inline_comment(
+        self,
+        content_id: str,
+        selection: str,
+        body: str,
+        match_index: int = 0,
+        num_matches: int = 1,
+    ) -> dict:
+        """
+        添加划线批注 (inline comment)
+
+        POST /rest/inlinecomments/1.0/comments
+
+        划线批注不能走 /rest/api/content 创建（补齐 extensions.location=inline 与
+        inlineProperties 后仍返回 400 {"authorized": false, "valid": true}），
+        必须走 inline comments 插件命名空间。
+
+        锚点由 selection + match_index 决定，正文里的 inline-comment-marker span
+        由服务端插入，调用方不需要改页面 storage，也不需要 bump version。
+
+        Args:
+            content_id: 内容 ID
+            selection: 被划线的原文，必须与页面正文中的文本完全一致
+            body: 批注正文（HTML，如 "<p>...</p>"）
+            match_index: 原文出现多次时锚定第几处（从 0 开始）
+            num_matches: 原文在页面中的出现次数
+
+        Returns:
+            dict: 服务端返回的批注对象，含服务端生成的 markerRef
+        """
+        payload: dict[str, Any] = {
+            "containerId": int(content_id),
+            "body": body,
+            "originalSelection": selection,
+            "matchIndex": match_index,
+            "numMatches": num_matches,
+            "lastFetchTime": self._now_ms(),
+            # 服务端必填但从不解析: 原样存进 content property
+            # inline-serialized-highlights，任何读接口都不返回它
+            "serializedHighlights": "",
+        }
+
+        return await self.client.post_json(self.INLINE_COMMENT_PATH, data=payload)
+
+    async def resolve_inline_comment(
+        self,
+        comment_id: str,
+        content_id: str,
+        resolved: bool = True,
+        dangling: bool = False,
+    ) -> dict:
+        """
+        解决 / 取消解决划线批注
+
+        PUT /rest/inlinecomments/1.0/comments/{id}/resolve/{resolved}/dangling/{dangling}
+
+        解决状态只认 URL 路径: PUT /rest/inlinecomments/1.0/comments/{id} 传一个改了
+        resolveProperties 的对象会返回 200 但状态不变；/dangling/{bool} 这段路径必须带，
+        只写 .../resolve/true 是 404。
+
+        请求体要求批注的完整原始对象，本方法自动从 get_inline_comments_raw 取回并补齐
+        containerId / lastFetchTime / serializedHighlights / deleted / active。
+
+        Args:
+            comment_id: 划线批注 ID
+            content_id: 批注所在内容（页面）的 ID
+            resolved: True 解决，False 取消解决
+            dangling: 批注锚点是否已失效（原文被删）
+
+        Returns:
+            dict: 服务端返回的批注对象
+
+        Raises:
+            AtlassianNotFoundError: 页面下找不到该批注
+        """
+        comments = await self.get_inline_comments_raw(content_id)
+        target = next(
+            (c for c in comments if str(c.get("id")) == str(comment_id)),
+            None,
+        )
+        if target is None:
+            raise AtlassianNotFoundError(
+                f"Inline comment {comment_id} not found on content {content_id}",
+                status_code=404,
+            )
+
+        payload: dict[str, Any] = dict(target)
+        payload.update(
+            {
+                "containerId": int(content_id),
+                "lastFetchTime": self._now_ms(),
+                "serializedHighlights": "",
+                "deleted": False,
+                "active": True,
+            }
+        )
+
+        path = (
+            f"{self.INLINE_COMMENT_PATH}/{comment_id}"
+            f"/resolve/{str(resolved).lower()}/dangling/{str(dangling).lower()}"
+        )
+        return await self.client.put_json(path, data=payload)
+
+    @staticmethod
+    def _now_ms() -> int:
+        """当前毫秒时间戳（inline comments 插件的 lastFetchTime）"""
+        return int(time.time() * 1000)
 
     # ========== Descendants ==========
 

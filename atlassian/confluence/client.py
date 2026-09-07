@@ -19,6 +19,7 @@ from atlassian.confluence.resources import (
     LongTaskResource,
     WebhookResource,
     AccessModeResource,
+    LikeResource,
 )
 
 
@@ -112,6 +113,7 @@ class ConfluenceClient(BaseHttpClient):
         self._longtask: Optional[LongTaskResource] = None
         self._webhook: Optional[WebhookResource] = None
         self._accessmode: Optional[AccessModeResource] = None
+        self._like: Optional[LikeResource] = None
 
     @property
     def content(self) -> ContentResource:
@@ -182,6 +184,13 @@ class ConfluenceClient(BaseHttpClient):
         if self._accessmode is None:
             self._accessmode = AccessModeResource(self)
         return self._accessmode
+
+    @property
+    def like(self) -> LikeResource:
+        """点赞资源 (rest/likes/1.0) - 页面与评论通用"""
+        if self._like is None:
+            self._like = LikeResource(self)
+        return self._like
 
     # ========== 便捷方法 ==========
 

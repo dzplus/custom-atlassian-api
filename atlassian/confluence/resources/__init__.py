@@ -12,6 +12,7 @@ from atlassian.confluence.resources.audit import AuditResource
 from atlassian.confluence.resources.longtask import LongTaskResource
 from atlassian.confluence.resources.webhook import WebhookResource
 from atlassian.confluence.resources.accessmode import AccessModeResource
+from atlassian.confluence.resources.like import LikeResource
 
 __all__ = [
     "ContentResource",
@@ -24,4 +25,5 @@ __all__ = [
     "LongTaskResource",
     "WebhookResource",
     "AccessModeResource",
+    "LikeResource",
 ]
