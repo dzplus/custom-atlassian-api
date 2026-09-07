@@ -25,7 +25,7 @@ class Space(BaseModel):
     metadata: Optional[dict] = None
     permissions: Optional[list[dict]] = None
     homepage: Optional[dict] = None
-    _links: Optional[dict] = None
+    links: Optional[dict] = Field(default=None, alias="_links")
     _expandable: Optional[dict] = None
 
     model_config = {"populate_by_name": True, "extra": "allow"}
@@ -37,7 +37,7 @@ class SpaceList(BaseModel):
     start: Optional[int] = None
     limit: Optional[int] = None
     size: Optional[int] = None
-    _links: Optional[dict] = None
+    links: Optional[dict] = Field(default=None, alias="_links")
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -49,7 +49,7 @@ class SpaceProperty(BaseModel):
     value: Optional[Any] = None
     version: Optional[dict] = None
     space: Optional[Space] = None
-    _links: Optional[dict] = None
+    links: Optional[dict] = Field(default=None, alias="_links")
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -60,6 +60,6 @@ class SpacePropertyList(BaseModel):
     start: Optional[int] = None
     limit: Optional[int] = None
     size: Optional[int] = None
-    _links: Optional[dict] = None
+    links: Optional[dict] = Field(default=None, alias="_links")
 
     model_config = {"populate_by_name": True, "extra": "allow"}

@@ -70,7 +70,7 @@ class Content(BaseModel):
     restrictions: Optional[dict] = None
     metadata: Optional[dict] = None
     extensions: Optional[dict] = None
-    _links: Optional[dict] = None
+    links: Optional[dict] = Field(default=None, alias="_links")
     _expandable: Optional[dict] = None
 
     model_config = {"populate_by_name": True, "extra": "allow"}
@@ -82,7 +82,7 @@ class ContentList(BaseModel):
     start: Optional[int] = None
     limit: Optional[int] = None
     size: Optional[int] = None
-    _links: Optional[dict] = None
+    links: Optional[dict] = Field(default=None, alias="_links")
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -103,7 +103,7 @@ class ContentLabelList(BaseModel):
     start: Optional[int] = None
     limit: Optional[int] = None
     size: Optional[int] = None
-    _links: Optional[dict] = None
+    links: Optional[dict] = Field(default=None, alias="_links")
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -115,7 +115,7 @@ class ContentProperty(BaseModel):
     value: Optional[Any] = None
     version: Optional[dict] = None
     content: Optional[Content] = None
-    _links: Optional[dict] = None
+    links: Optional[dict] = Field(default=None, alias="_links")
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -126,7 +126,7 @@ class ContentPropertyList(BaseModel):
     start: Optional[int] = None
     limit: Optional[int] = None
     size: Optional[int] = None
-    _links: Optional[dict] = None
+    links: Optional[dict] = Field(default=None, alias="_links")
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -141,7 +141,7 @@ class Attachment(BaseModel):
     container: Optional[dict] = None
     metadata: Optional[dict] = None
     extensions: Optional[dict] = None
-    _links: Optional[dict] = None
+    links: Optional[dict] = Field(default=None, alias="_links")
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -152,7 +152,7 @@ class AttachmentList(BaseModel):
     start: Optional[int] = None
     limit: Optional[int] = None
     size: Optional[int] = None
-    _links: Optional[dict] = None
+    links: Optional[dict] = Field(default=None, alias="_links")
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -167,7 +167,7 @@ class Comment(BaseModel):
     container: Optional[dict] = None
     body: Optional[ContentBodyContainer] = None
     extensions: Optional[dict] = None
-    _links: Optional[dict] = None
+    links: Optional[dict] = Field(default=None, alias="_links")
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -178,7 +178,7 @@ class CommentList(BaseModel):
     start: Optional[int] = None
     limit: Optional[int] = None
     size: Optional[int] = None
-    _links: Optional[dict] = None
+    links: Optional[dict] = Field(default=None, alias="_links")
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -207,6 +207,6 @@ class SearchResultList(BaseModel):
     total_size: Optional[int] = Field(None, alias="totalSize")
     cql_query: Optional[str] = Field(None, alias="cqlQuery")
     search_duration: Optional[int] = Field(None, alias="searchDuration")
-    _links: Optional[dict] = None
+    links: Optional[dict] = Field(default=None, alias="_links")
 
     model_config = {"populate_by_name": True, "extra": "allow"}

@@ -24,7 +24,7 @@ class User(BaseModel):
     account_id: Optional[str] = Field(None, alias="accountId")
     profile_picture: Optional[ProfilePicture] = Field(None, alias="profilePicture")
     display_name: Optional[str] = Field(None, alias="displayName")
-    _links: Optional[dict] = None
+    links: Optional[dict] = Field(default=None, alias="_links")
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
