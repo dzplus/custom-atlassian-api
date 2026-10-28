@@ -16,6 +16,7 @@ POST   /rest/api/2/issue/{issueIdOrKey}/attachments - 上传附件
 """
 
 from typing import Any, Optional
+import warnings
 from pathlib import Path
 
 from atlassian.common.base import BaseResource
@@ -1500,41 +1501,75 @@ class IssueResource(BaseResource):
             params["currentProjectId"] = current_project_id
         return await self.client.get_json(path, params=params)
 
+    async def reorder_subtasks(
+        self,
+        parent_issue_id_or_key: str,
+        original: int,
+        current: int,
+    ) -> None:
+        """在同一父任务下排序，位置从 0 开始；不改变 parent。
+
+        Jira 8.13.5 页面实际发送 original 和 current（旧版 REST Schema
+        漏列 original）。路径中的 Issue 是父任务，不是被拖动的子任务。
+        """
+        if any(type(value) is not int or value < 0 for value in (original, current)):
+            raise ValueError(
+                "original and current must be non-negative integer indexes"
+            )
+        path = f"{self.BASE_PATH}/{parent_issue_id_or_key}/subtask/move"
+        await self.client.post_json(
+            path, data={"original": original, "current": current}
+        )
+
+    async def can_reorder_subtasks(self, parent_issue_id_or_key: str) -> bool:
+        """读取父任务的子任务排序能力；不能用于判断换父级能力。"""
+        path = f"{self.BASE_PATH}/{parent_issue_id_or_key}/subtask/move"
+        return await self.client.get_json(path)
+
     async def move_subtasks(
         self,
         issue_id_or_key: str,
-        new_parent_issue_key: str,
+        original: int,
+        current: int,
     ) -> None:
+        """弃用名称；请改用 reorder_subtasks(parent_key, original, current)。
+
+        旧的 new_parent_issue_key 参数无效且已移除；换父级使用 reparent_subtask。
         """
-        移动子任务到新的父Issue
+        warnings.warn(
+            "Use reorder_subtasks; move_subtasks only reorders siblings",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        await self.reorder_subtasks(issue_id_or_key, original, current)
 
-        POST /rest/api/2/issue/{issueIdOrKey}/subtask/move
+    async def can_move_subtask(self, issue_id_or_key: str) -> bool:
+        """弃用名称；只返回排序能力，请改用 can_reorder_subtasks。"""
+        warnings.warn(
+            "Use can_reorder_subtasks; this does not check reparenting",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return await self.can_reorder_subtasks(issue_id_or_key)
 
-        Args:
-            issue_id_or_key: Issue ID 或 Key
-            new_parent_issue_key: 新父Issue的Key
-        """
-        path = f"{self.BASE_PATH}/{issue_id_or_key}/subtask/move"
-        payload = {"issueKey": new_parent_issue_key}
-        await self.client.post_json(path, data=payload)
-
-    async def can_move_subtask(
-        self,
-        issue_id_or_key: str,
+    async def preview_reparent_subtask(
+        self, subtask_key: str, target_parent_key: str
     ) -> dict:
+        """只读预览源父级、目标父级、类型、项目和受支持的迁移路径。"""
+        from .subtask_parent import preview_reparent
+
+        return await preview_reparent(self, subtask_key, target_parent_key)
+
+    async def reparent_subtask(self, subtask_key: str, target_parent_key: str) -> dict:
+        """保留原单换父级；仅支持已验证的 Jira Server 8.13.5 Basic 网页流程。
+
+        无需额外插件。执行后回读 parent 与双方子任务列表，不重试写请求。
+        同一客户端的网页迁移应串行调用，避免共享向导会话互相覆盖。
+        详见 docs/jira-subtasks.md。失败抛出 SubtaskReparentError。
         """
-        检查是否可以移动子任务
+        from .subtask_parent import reparent_subtask
 
-        GET /rest/api/2/issue/{issueIdOrKey}/subtask/move
-
-        Args:
-            issue_id_or_key: Issue ID 或 Key
-
-        Returns:
-            dict: 检查结果
-        """
-        path = f"{self.BASE_PATH}/{issue_id_or_key}/subtask/move"
-        return await self.client.get_json(path)
+        return await reparent_subtask(self, subtask_key, target_parent_key)
 
     async def archive_issues(
         self,
