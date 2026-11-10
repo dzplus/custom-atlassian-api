@@ -60,6 +60,20 @@ from atlassian.confluence.models.content import (
 )
 
 
+class CommentReplyWriteError(RuntimeError):
+    """A reply write was attempted; callers must inspect rather than retry."""
+
+    def __init__(self, cause: Exception, context: dict, comment_id: str | None = None):
+        super().__init__(str(cause))
+        self.context = context
+        self.comment_id = comment_id
+        status = (cause.response.status_code if isinstance(cause, httpx.HTTPStatusError)
+                  else getattr(cause, "status_code", None))
+        rejected = status is not None and 400 <= status < 500 and status != 408
+        self.created = True if comment_id else (False if rejected else None)
+        self.cause = cause
+
+
 class ContentResource(BaseResource):
     """
     Content 资源
@@ -843,6 +857,49 @@ class ContentResource(BaseResource):
         data = await self.client.post_json(self.BASE_PATH, data=payload)
         return Comment.model_validate(data)
 
+    async def get_comment_reply_context(
+        self, comment_id: str, container_id: str, container_type: str = "page"
+    ) -> dict:
+        """Read and validate the target and its root before any reply write."""
+        target = await self.get_raw(
+            comment_id, expand="container,ancestors,extensions.resolution"
+        )
+        container = target.get("container") or {}
+        if (target.get("type") != "comment"
+                or str(container.get("id")) != str(container_id)
+                or container.get("type") != container_type):
+            raise ValueError("Reply target does not belong to the requested container")
+        ancestors = [a for a in target.get("ancestors", []) if a.get("type") == "comment"]
+        root_id = str(ancestors[0]["id"]) if ancestors else str(comment_id)
+        root = target if root_id == str(comment_id) else await self.get_raw(
+            root_id, expand="container,ancestors,extensions.resolution"
+        )
+        root_container = root.get("container") or {}
+        if (root.get("type") != "comment"
+                or str(root_container.get("id")) != str(container_id)
+                or root_container.get("type") != container_type):
+            raise ValueError("Reply root does not belong to the requested container")
+        location = (target.get("extensions") or {}).get("location")
+        root_location = (root.get("extensions") or {}).get("location")
+        if location not in {"inline", "footer"} or location != root_location:
+            raise ValueError("Reply target has missing or inconsistent location")
+        return {
+            "requested_parent_id": str(comment_id),
+            "root_id": root_id,
+            "page_id": str(container_id),
+            "expected_location": location,
+            "resolution": (root.get("extensions") or {}).get("resolution"),
+        }
+
+    async def get_inline_comment_replies(self, comment_id: str) -> list[dict]:
+        """Read the native inline thread (the same collection the web UI displays)."""
+        data = await self.client.get_json(
+            f"{self.INLINE_COMMENT_PATH}/{comment_id}/replies"
+        )
+        if not isinstance(data, list):
+            raise ValueError("Inline reply response is not a complete list")
+        return data
+
     async def reply_to_comment(
         self,
         comment_id: str,
@@ -851,38 +908,45 @@ class ContentResource(BaseResource):
         body_format: str = "storage",
         container_type: str = "page",
     ) -> Comment:
+        """Reply in the target's original location; never create a new anchor.
+
+        Inline: POST /rest/inlinecomments/1.0/comments/{root}/replies?containerId=...
+        (Confluence inline plugin /model/reply.js). Footer: POST /rest/api/content.
+        ``reply_context`` records the pre-write target, root and expected location.
+        A CommentReplyWriteError means a write was attempted: do not blindly retry.
         """
-        回复评论
-
-        POST /rest/api/content  (type=comment, ancestors 指向父评论)
-
-        底部评论与划线批注的回复都走这个接口: container 仍指向页面，
-        ancestors 指向被回复的评论 / 批注 ID。
-
-        Args:
-            comment_id: 被回复的评论 / 划线批注 ID
-            body: 回复正文
-            container_id: 评论所在内容（页面）的 ID
-            body_format: 正文格式 (storage, wiki, editor, editor2)
-            container_type: 容器类型 (page, blogpost)
-
-        Returns:
-            Comment: 创建的回复
-        """
-        payload: dict[str, Any] = {
-            "type": "comment",
-            "container": {"id": str(container_id), "type": container_type},
-            "ancestors": [{"id": str(comment_id), "type": "comment"}],
-            "body": {
-                body_format: {
-                    "value": body,
-                    "representation": body_format,
+        context = await self.get_comment_reply_context(comment_id, container_id, container_type)
+        if context["expected_location"] == "inline":
+            if body_format != "storage":
+                raise ValueError("Inline replies require storage HTML")
+            path = f"{self.INLINE_COMMENT_PATH}/{context['root_id']}/replies"
+            params = {"containerId": str(container_id)}
+            payload = {"body": body, "commentId": int(context["root_id"])}
+        else:
+            path = self.BASE_PATH
+            params = {}
+            payload = {
+                "type": "comment",
+                "container": {"id": str(container_id), "type": container_type},
+                "ancestors": [{"id": str(comment_id), "type": "comment"}],
+                "body": {body_format: {"value": body, "representation": body_format}},
+            }
+        data = None
+        try:
+            data = await self.client.post_json(path, data=payload, params=params)
+            # Inline plugin IDs are numbers and its body is a string, unlike Content.
+            normalized = dict(data)
+            if normalized.get("id") is not None:
+                normalized["id"] = str(normalized["id"])
+            if isinstance(normalized.get("body"), str):
+                normalized["body"] = {
+                    "storage": {"value": normalized["body"], "representation": "storage"}
                 }
-            },
-        }
-
-        data = await self.client.post_json(self.BASE_PATH, data=payload)
-        return Comment.model_validate(data)
+            normalized["reply_context"] = context
+            return Comment.model_validate(normalized)
+        except Exception as error:
+            created_id = str(data["id"]) if isinstance(data, dict) and data.get("id") else None
+            raise CommentReplyWriteError(error, context, created_id) from error
 
     # ========== Inline Comments (划线批注) ==========
 

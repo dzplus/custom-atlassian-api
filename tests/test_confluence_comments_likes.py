@@ -2,11 +2,11 @@
 
 import asyncio
 import json
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import httpx
 import pytest
-
 from atlassian.common.exceptions import AtlassianNotFoundError
 from atlassian.confluence import ConfluenceClient
 
@@ -70,6 +70,12 @@ def test_reply_to_comment_sets_ancestors_and_keeps_page_container() -> None:
 
     def handler(request: httpx.Request) -> httpx.Response:
         seen.append(request)
+        if request.method == "GET":
+            return httpx.Response(200, json={
+                "id": "1001", "type": "comment", "ancestors": [],
+                "container": {"id": "223740097", "type": "page"},
+                "extensions": {"location": "footer"},
+            })
         return httpx.Response(200, json={"id": "1002", "type": "comment"})
 
     client = make_client(handler)
@@ -82,7 +88,7 @@ def test_reply_to_comment_sets_ancestors_and_keeps_page_container() -> None:
         ),
     )
 
-    payload = body_of(seen[0])
+    payload = body_of(seen[-1])
     assert payload["ancestors"] == [{"id": "1001", "type": "comment"}]
     assert payload["container"] == {"id": "223740097", "type": "page"}
 
@@ -312,3 +318,86 @@ def test_remove_like_deletes_plugin_endpoint() -> None:
     assert result is None
     assert seen[0].method == "DELETE"
     assert seen[0].url.path == "/rest/likes/1.0/content/223740097/likes"
+
+
+@pytest.mark.parametrize("target_id", ["1001", "1002"])
+def test_inline_reply_uses_original_thread_plugin_endpoint(target_id):
+    seen = []
+    def handler(request):
+        seen.append(request)
+        if request.method == "GET":
+            cid = request.url.path.rsplit("/", 1)[-1]
+            return httpx.Response(200, json={
+                "id": cid, "type": "comment",
+                "container": {"id": "123", "type": "page"},
+                "ancestors": [] if cid == "1001" else [{"id": "1001", "type": "comment"}],
+                "extensions": {"location": "inline", "resolution": {"status": "resolved"}},
+            })
+        return httpx.Response(200, json={"id": 1003, "body": "<p>reply</p>", "commentId": 1001})
+    client = make_client(handler)
+    result = run(client, lambda: client.content.reply_to_comment(target_id, "<p>reply</p>", "123"))
+    posts = [req for req in seen if req.method == "POST"]
+    assert len(posts) == 1
+    assert posts[0].url.path == "/rest/inlinecomments/1.0/comments/1001/replies"
+    assert posts[0].url.params["containerId"] == "123"
+    assert body_of(posts[0]) == {"body": "<p>reply</p>", "commentId": 1001}
+    assert result.id == "1003"
+    assert result.reply_context["requested_parent_id"] == target_id
+    assert result.reply_context["resolution"] == {"status": "resolved"}
+    assert not any(req.method == "PUT" for req in seen)
+
+
+@pytest.mark.parametrize("bad", ["page", "location", "type"])
+def test_reply_rejects_invalid_context_without_writing(bad):
+    seen = []
+    def handler(request):
+        seen.append(request)
+        return httpx.Response(200, json={
+            "id": "1001", "type": "page" if bad == "type" else "comment",
+            "container": {"id": "wrong" if bad == "page" else "123", "type": "page"},
+            "extensions": {} if bad == "location" else {"location": "inline"},
+        })
+    client = make_client(handler)
+    with pytest.raises(ValueError):
+        run(client, lambda: client.content.reply_to_comment("1001", "x", "123"))
+    assert all(req.method == "GET" for req in seen)
+
+
+def test_reply_write_timeout_is_unknown_and_not_retried():
+    from atlassian.confluence.resources.content import CommentReplyWriteError
+    seen = []
+    def handler(request):
+        seen.append(request)
+        if request.method == "GET":
+            return httpx.Response(200, json={
+                "id": "1001", "type": "comment",
+                "container": {"id": "123", "type": "page"},
+                "extensions": {"location": "inline"},
+            })
+        raise httpx.ReadTimeout("ambiguous", request=request)
+    client = make_client(handler)
+    with pytest.raises(CommentReplyWriteError) as error:
+        run(client, lambda: client.content.reply_to_comment("1001", "x", "123"))
+    assert error.value.created is None
+    assert error.value.context["root_id"] == "1001"
+    assert len([req for req in seen if req.method == "POST"]) == 1
+
+
+@pytest.mark.parametrize("status,created", [(403, False), (408, None), (500, None)])
+def test_reply_http_failure_preserves_creation_uncertainty(status, created):
+    from atlassian.confluence.resources.content import CommentReplyWriteError
+    seen = []
+    def handler(request):
+        seen.append(request)
+        if request.method == "GET":
+            return httpx.Response(200, json={
+                "id": "1001", "type": "comment",
+                "container": {"id": "123", "type": "page"},
+                "extensions": {"location": "inline"},
+            })
+        return httpx.Response(status, json={"message": "rejected"})
+    client = make_client(handler)
+    with pytest.raises(CommentReplyWriteError) as error:
+        run(client, lambda: client.content.reply_to_comment("1001", "x", "123"))
+    assert error.value.created is created
+    assert len([req for req in seen if req.method == "POST"]) == 1
