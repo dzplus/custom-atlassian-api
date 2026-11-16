@@ -74,6 +74,22 @@ class CommentReplyWriteError(RuntimeError):
         self.cause = cause
 
 
+class CommentEditWriteError(RuntimeError):
+    """An edit was attempted; the caller must read back before another write."""
+
+    def __init__(self, cause: Exception, context: dict):
+        super().__init__(str(cause))
+        self.context = context
+        self.cause = cause
+        self.status_code = (
+            cause.response.status_code if isinstance(cause, httpx.HTTPStatusError)
+            else getattr(cause, "status_code", None)
+        )
+        rejected = (self.status_code is not None
+                    and 400 <= self.status_code < 500 and self.status_code != 408)
+        self.updated = False if rejected else None
+
+
 class ContentResource(BaseResource):
     """
     Content 资源
@@ -899,6 +915,54 @@ class ContentResource(BaseResource):
         if not isinstance(data, list):
             raise ValueError("Inline reply response is not a complete list")
         return data
+
+    async def edit_comment(self, comment_id: str, body: str, container_id: str) -> dict:
+        """Edit an existing comment without changing its thread or inline properties.
+
+        Confluence Server REST Update Content supports all content with a body.
+        Keep the current title and increment the comment version; a concurrent
+        edit is rejected by the server, never retried here.
+        """
+        if not body.strip():
+            raise ValueError("Comment body must not be empty")
+        context = await self.get_comment_reply_context(comment_id, container_id)
+        target = await self.get_raw(
+            comment_id, expand="body.storage,version,container,ancestors,extensions.resolution"
+        )
+        ancestors = [a for a in target.get("ancestors", []) if a.get("type") == "comment"]
+        parent_id = str(ancestors[-1]["id"]) if ancestors else None
+        root_id = str(ancestors[0]["id"]) if ancestors else str(comment_id)
+        if (target.get("type") != "comment"
+                or str((target.get("container") or {}).get("id")) != str(container_id)
+                or (target.get("extensions") or {}).get("location") != context["expected_location"]
+                or root_id != context["root_id"]):
+            raise ValueError("Comment identity changed while preparing the edit")
+        version = (target.get("version") or {}).get("number")
+        if type(version) is not int or version < 1 or not target.get("title"):
+            raise ValueError("Comment title or current version is missing")
+        context.update(comment_id=str(comment_id), parent_id=parent_id, version=version)
+        if context["expected_location"] == "inline":
+            roots = await self.get_inline_comments_raw(container_id)
+            root = next((r for r in roots if str(r.get("id")) == root_id), None)
+            if root is None:
+                raise ValueError("Inline root is missing from the native thread collection")
+            context["inline_root"] = {
+                key: root.get(key) for key in ("markerRef", "originalSelection", "resolveProperties")
+            }
+            if root_id != str(comment_id):
+                replies = await self.get_inline_comment_replies(root_id)
+                if not any(str(r.get("id")) == str(comment_id) for r in replies):
+                    raise ValueError("Comment is missing from the native inline reply collection")
+        payload = {
+            "type": "comment", "title": target["title"],
+            "version": {"number": version + 1},
+            "body": {"storage": {"value": body, "representation": "storage"}},
+        }
+        try:
+            data = await self.update_raw(comment_id, payload)
+        except Exception as error:
+            raise CommentEditWriteError(error, context) from error
+        return {"response": data, "edit_context": context}
 
     async def reply_to_comment(
         self,
