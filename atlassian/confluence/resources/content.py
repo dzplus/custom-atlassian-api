@@ -953,6 +953,10 @@ class ContentResource(BaseResource):
                 replies = await self.get_inline_comment_replies(root_id)
                 if not any(str(r.get("id")) == str(comment_id) for r in replies):
                     raise ValueError("Comment is missing from the native inline reply collection")
+        # Confluence accepts identical bodies without incrementing the version.
+        # Decide this before sending a PUT, rather than weakening version checks.
+        if ((target.get("body") or {}).get("storage") or {}).get("value") == body:
+            return {"response": target, "edit_context": context, "updated": False}
         payload = {
             "type": "comment", "title": target["title"],
             "version": {"number": version + 1},
@@ -962,7 +966,7 @@ class ContentResource(BaseResource):
             data = await self.update_raw(comment_id, payload)
         except Exception as error:
             raise CommentEditWriteError(error, context) from error
-        return {"response": data, "edit_context": context}
+        return {"response": data, "edit_context": context, "updated": True}
 
     async def reply_to_comment(
         self,
